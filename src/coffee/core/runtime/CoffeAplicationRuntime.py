@@ -1,35 +1,35 @@
-from dataclasses import dataclass
-from functools import wraps
-from typing import Any, Callable
-
 from core.data.Config import Config
 from core.runtime.contener.CoffeeApplicationContainer import CoffeeApplicationContainer
-from core.runtime.contener.CofeeRegistry import CoffeeRegistry
 
-@dataclass
+
 class CoffeeApplicationRuntime:
+    _container: CoffeeApplicationContainer | None = None
 
-    def __init__(self):
-        self.container: CoffeeApplicationContainer | None = None
+    @classmethod
+    def init(cls) -> None:
+        if cls._container is not None:
+            return
 
-    def init(self) -> None:
         config = Config().build()
 
-        self.container = CoffeeApplicationContainer(
+        cls._container = CoffeeApplicationContainer(
             config=config,
         )
 
-    def getContainer(self) -> CoffeeApplicationContainer:
-        if self.container is None:
+    @classmethod
+    def getContainer(cls) -> CoffeeApplicationContainer:
+        if cls._container is None:
             raise RuntimeError(
                 "CoffeeApplicationRuntime is not initialized"
             )
 
-        return self.container
+        return cls._container
 
-    def setConfig(self,config:Config) -> None:
-        self.container.setConfig(config=config)
+    @classmethod
+    def setConfig(cls, config: Config) -> None:
+        cls.getContainer().setConfig(config)
 
-    def stop(self) -> bool:
-        self.container = None
+    @classmethod
+    def stop(cls) -> bool:
+        cls._container = None
         return True
