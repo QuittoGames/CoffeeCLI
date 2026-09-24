@@ -1,0 +1,213 @@
+# Coffee CLI — Arquitetura Geral
+
+```mermaid
+graph TB
+    subgraph "User Layer"
+        USER[👤 Quitto]
+    end
+
+    subgraph "Coffee Interface"
+        CLI[Coffee CLI<br/>Python V1]
+        OTHER_UI[Outras UIs<br/>VS Code, Web, etc.]
+    end
+
+    subgraph "Coffee Server (Central API)"
+        SERVER[Coffee Server]
+        STATE[Estado Central]
+        TASKS[Tasks Service]
+        PROJECTS[Projects Service]
+        CONTEXT[Context Engine]
+        INTEGRATIONS[Integrations]
+        CAPABILITIES[Capability Layer]
+    end
+
+    subgraph "Local System Layer"
+        FS[Filesystem]
+        GIT[Git]
+        PROC[Processos]
+        OS[Sistema Operacional]
+        HW[Hardware]
+    end
+
+    subgraph "Native Engine (Futuro)"
+        CPP_ENGINE[C++ Engine<br/>Processo Separado]
+    end
+
+    USER --> CLI
+    USER --> OTHER_UI
+    
+    CLI --> SERVER
+    OTHER_UI --> SERVER
+    
+    CLI --> FS
+    CLI --> GIT
+    CLI --> PROC
+    CLI --> OS
+    CLI --> HW
+    
+    CLI -.->|Protocolo IPC| CPP_ENGINE
+    
+    SERVER --> STATE
+    SERVER --> TASKS
+    SERVER --> PROJECTS
+    SERVER --> CONTEXT
+    SERVER --> INTEGRATIONS
+    SERVER --> CAPABILITIES
+    
+    CAPABILITIES -.->|REST| CLI
+    CAPABILITIES -.->|MCP| OTHER_UI
+    CAPABILITIES -.->|WS/Events| OTHER_UI
+```
+
+---
+
+# CoffeeApplicationRuntime — Lifecycle
+
+```mermaid
+sequenceDiagram
+    participant EP as Entry Point<br/>(main, CLI, worker)
+    participant RT as CoffeeApplicationRuntime
+    participant CFG as Config
+    participant CTN as CoffeeApplicationContainer
+    participant APP as Application Logic
+
+    EP->>RT: @CoffeeApplicationRuntime()<br/>async def main(app)
+    RT->>RT: __init__(container=None)
+    RT->>RT: init()
+    RT->>CFG: Config().build()
+    CFG-->>RT: config instance
+    RT->>CTN: CoffeeApplicationContainer(config)
+    CTN-->>RT: container
+    RT->>EP: injeta runtime (app)
+    EP->>APP: executa lógica<br/>app.getContainer().getConfig()
+    APP-->>EP: resultado
+    EP->>RT: retorno (normal ou exception)
+    RT->>RT: stop() em try/finally
+    RT->>CTN: container = None
+    RT-->>EP: controle devolvido
+```
+
+---
+
+# Plugin Architecture
+
+```mermaid
+graph TB
+    subgraph "Coffee Core"
+        RUNTIME[CoffeeApplicationRuntime]
+        CONFIG[Config System]
+        PLUGIN_SYS[Plugin System<br/>Discovery, Loading, Contract]
+        DOMAIN[Domain Models<br/>Task, Project, Repository<br/>Machine, Context]
+        PORTS[Ports/Contracts]
+    end
+
+    subgraph "Plugins (Features Independentes)"
+        TASK_PLUGIN[Task Plugin]
+        PROJ_PLUGIN[Project Plugin]
+        GIT_PLUGIN[Git Plugin]
+        CTX_PLUGIN[Context Plugin]
+        SYS_PLUGIN[System Plugin]
+        AI_PLUGIN[AI Plugin]
+    end
+
+    subgraph "Task Plugin Interno"
+        T_MODELS[Models]
+        T_SERVICES[Services/Use Cases]
+        T_ADAPTERS[Adapters<br/>Server REST, Local FS]
+        T_PORTS[Ports]
+        T_COMMANDS[Commands<br/>task add/list/done]
+        T_META[plugin.py<br/>Metadata, Config]
+    end
+
+    RUNTIME --> CONFIG
+    RUNTIME --> PLUGIN_SYS
+    PLUGIN_SYS --> DOMAIN
+    PLUGIN_SYS --> PORTS
+    
+    PLUGIN_SYS --> TASK_PLUGIN
+    PLUGIN_SYS --> PROJ_PLUGIN
+    PLUGIN_SYS --> GIT_PLUGIN
+    PLUGIN_SYS --> CTX_PLUGIN
+    PLUGIN_SYS --> SYS_PLUGIN
+    PLUGIN_SYS --> AI_PLUGIN
+    
+    TASK_PLUGIN --> T_MODELS
+    TASK_PLUGIN --> T_SERVICES
+    TASK_PLUGIN --> T_ADAPTERS
+    TASK_PLUGIN --> T_PORTS
+    TASK_PLUGIN --> T_COMMANDS
+    TASK_PLUGIN --> T_META
+    
+    T_SERVICES --> T_PORTS
+    T_ADAPTERS --> T_PORTS
+    T_ADAPTERS -.->|HTTP| SERVER[Coffee Server]
+    T_ADAPTERS -.->|FS| LOCAL[Local FS]
+```
+
+---
+
+# Python ↔ C++ Engine Protocol
+
+```mermaid
+sequenceDiagram
+    participant PY as Coffee CLI (Python)
+    participant IPC as IPC Protocol
+    participant CPP as C++ Engine
+
+    Note over PY,CPP: Opção A: JSON sobre stdin/stdout
+    PY->>IPC: spawn C++ process
+    PY->>IPC: stdin: {"op": "system_info", "args": {}}
+    IPC->>CPP: stdin read
+    CPP->>CPP: executa operação nativa
+    CPP->>IPC: stdout: {"result": {...}, "error": null}
+    IPC->>PY: stdout read + parse JSON
+    
+    Note over PY,CPP: Opção B: gRPC
+    PY->>IPC: gRPC call SystemInfo({})
+    IPC->>CPP: gRPC request
+    CPP->>IPC: gRPC response
+    IPC->>PY: response object
+    
+    Note over PY,CPP: Opção C: Named Pipe / Unix Socket
+    PY->>IPC: connect pipe/socket
+    PY->>IPC: send MessagePack
+    IPC->>CPP: read + decode
+    CPP->>IPC: write MessagePack
+    IPC->>PY: read + decode
+```
+
+---
+
+# Context Resolution Flow
+
+```mermaid
+graph LR
+    REQ[Request<br/>AI Harness / CLI] --> RESOLVER[Context Resolver]
+    
+    subgraph "Context Sources"
+        USER_PROF[User Profile]
+        PROJ[Project]
+        REPO[Repository]
+        GIT_STATE[Git State]
+        TASK[Task]
+        DOCS[Documentation]
+        DECISIONS[Decisions]
+        MACHINE[Machine]
+        RUNTIME_STATE[Runtime State]
+        EXT_DATA[External Data]
+    end
+    
+    RESOLVER --> USER_PROF
+    RESOLVER --> PROJ
+    RESOLVER --> REPO
+    RESOLVER --> GIT_STATE
+    RESOLVER --> TASK
+    RESOLVER --> DOCS
+    RESOLVER --> DECISIONS
+    RESOLVER --> MACHINE
+    RESOLVER --> RUNTIME_STATE
+    RESOLVER --> EXT_DATA
+    
+    RESOLVER --> PACK[Context Pack<br/>Relevant Information Only]
+    PACK --> CLIENT[AI Harness / Client]
+```
