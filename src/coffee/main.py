@@ -1,19 +1,22 @@
-from ..data.data import data
+from coffee.core.data.Config import Config
 from coffee.core.Services.tool import tool
 import asyncio
-from core.runtime.CoffeAplicationRuntime import CoffeeApplicationRuntime
-from core.domain.exepiton.InvalidCoffeeAplicationException import InvalidCoffeeApplicationException
+from coffee.core.runtime.CoffeAplicationRuntime import CoffeeApplicationRuntime
+from coffee.core.domain.exepiton.InvalidCoffeeAplicationException import (
+    InvalidCoffeeApplicationException,
+)
 
-data_local = data()
+config_local = Config()
 
 
 def Start():
     tool.menu()
 
+
 @CoffeeApplicationRuntime
 async def main(app: CoffeeApplicationRuntime):
     try:
-        if data_local.Debug:
+        if config_local.Debug:
             tool.verify_modules()
 
         if not (app or app.getContainer()):
@@ -23,6 +26,7 @@ async def main(app: CoffeeApplicationRuntime):
 
     except (StopAsyncIteration, InvalidCoffeeApplicationException) as E:
         print(f"[ERROR] Erro StopAsycnInteration, Erro: {E}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
