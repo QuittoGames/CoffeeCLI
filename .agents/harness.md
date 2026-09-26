@@ -1616,7 +1616,8 @@ Contexto do projeto e onde vive cada documento:
 ├── context/
 │   └── coffee-ecosystem-conversation-documentation.md ← fonte arquitetural (DEV)
 └── specs/
-    └── ux-ui-language.md                            ← linguagem visual TUI (UX)
+    ├── ux-ui-language.md                            ← linguagem visual TUI (UX)
+    └── coffee-components-aop.md                     ← componentes AOP, registry e DI (DECISION)
 ```
 
 O diretório `docs/` é gerido por fluxo separado — estado atual em:
@@ -1628,8 +1629,9 @@ docs/ai/STATE.md
 Documentos existentes em docs/ (FACT):
 
 ```text
-docs/architecture/runtime.md → fronteira de lifecycle
-docs/decisions/              → ADRs 001–007
+docs/architecture/runtime.md       → fronteira de lifecycle
+docs/architecture/components-aop.md → componentes AOP, registry e DI
+docs/decisions/                    → ADRs 001–007
 ```
 
 O harness não duplica esses documentos.

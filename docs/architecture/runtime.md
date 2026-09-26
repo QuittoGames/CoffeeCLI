@@ -98,7 +98,15 @@ Porque o componente não guarda dados de negócio nem implementa regras — ele 
 
 ## 3. Relação com AOP
 
-A comparação com **AOP** (Aspect-Oriented Programming) é apenas **conceitual**.
+A comparação com **AOP** (Aspect-Oriented Programming) é **conceitual**, e foi
+alargada pela spec de componentes (`.agents/specs/coffee-components-aop.md`,
+DECISION 2026-09-25): o AOP do Coffee cobre a **infraestrutura declarativa de
+componentes** (`CoffeeComponent` → `CoffeeRegistry` → `CoffeeApplicationContainer`,
+com registro, resolução e DI) **e** o **único around de execução**, que continua
+sendo o lifecycle da aplicação.
+
+Alargada, porém **nada muito grande**: continua sendo uma infraestrutura leve,
+não um framework AOP — ver a tabela "O que o Coffee NÃO pretende ser" abaixo.
 
 No AOP clássico (ex.: Spring), um *around advice* envolve a execução de um ponto de entrada:
 
@@ -141,7 +149,10 @@ runtime.stop()
 | infraestrutura de aspectos | — |
 | — | **1 único around: lifecycle da aplicação** |
 
-O objetivo é somente uma **abstração leve de lifecycle** — não um framework AOP.
+O objetivo continua sendo uma **abstração leve**: não há pointcuts, weaving,
+proxies nem interceptação arbitrária de métodos. O "AOP" do Coffee é a
+infraestrutura declarativa de componentes descrita em
+`docs/architecture/components-aop.md`, e não aspectos em tempo de execução.
 
 ---
 
