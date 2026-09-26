@@ -1,32 +1,38 @@
-from dataclasses import dataclass
-from core.data.Config import Config
-from core.Services.module.ModuleManager import ModuleManager
-from core.runtime.contener.CofeeRegistry import CoffeeRegistry
 import inspect
 
+from coffee.core.data.Config import Config
+from coffee.core.domain.interface.SystemModule import SystemModule
+from coffee.core.runtime.contener.CofeeRegistry import CoffeeRegistry
+
+
 class CoffeeApplicationContainer:
-    depencies: dict[inspect.Signature , type]
+    dependencie: list[SystemModule] = []
 
     def __init__(self, config: Config):
         self.config = config
 
-    def _create(dependecy:type) -> type:
-        if dependecy is None: raise RuntimeError()
-        signature: inspect.Signature = inspect.signature(dependecy.__init__)
+    def _create(self, dependency: type) -> type:
+        if dependency is None:
+            raise RuntimeError("Dependency cannot be None")
 
-        if signature is None or signature.empty(): raise RuntimeError()
+        signature = inspect.signature(dependency.__init__)
 
-        for parameters in signature.parameters.values():
-            if parameters == "self": continue
+        for parameter in signature.parameters.values():
+            if parameter.name == "self":
+                continue
 
+            print(
+                f"name={parameter.name}, "
+                f"type={parameter.annotation}, "
+                f"default={parameter.default}"
+            )
+        raise NotImplementedError("_create() is not implemented yet")
 
     def get(self, component: type):
         implementation = CoffeeRegistry.get(component)
 
         if implementation is None:
-            raise LookupError(
-                f"Component not registered: {component.__name__}"
-            )
+            raise LookupError(f"Component not registered: {component.__name__}")
 
         return implementation()
 

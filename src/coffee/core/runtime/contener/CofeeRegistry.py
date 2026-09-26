@@ -1,8 +1,13 @@
-from coffee.core.domain.interface.Module import Module
+from coffee.core.domain.interface.SystemModule import SystemModule
+from coffee.core.runtime.componets.base.CoffeeComponent import CoffeeComponent
+from typing import TypeVar
+
+T = TypeVar("T", bound=SystemModule)
+
 
 class CoffeeRegistry:
     components: dict[type, type] = {}
-    moduleRegestry: dict [str, Module] = {}
+    moduleRegestry: dict[str, SystemModule] = {}
 
     @classmethod
     def register(cls, component: type) -> type:
@@ -10,7 +15,7 @@ class CoffeeRegistry:
         return component
 
     @classmethod
-    def packageRegister(cls, module: Module) -> Module:
+    def packageRegister(cls, module: T) -> T:
         cls.moduleRegestry[module.id] = module
         return module
 
@@ -25,7 +30,6 @@ class CoffeeRegistry:
     @classmethod
     def getModule(cls, module: type) -> type | None:
         return cls.components.get(module)
-
 
     @classmethod
     def all(cls) -> tuple[type, ...]:
