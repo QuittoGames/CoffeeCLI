@@ -1,6 +1,6 @@
-from coffee.core.runtime.contener.CofeeRegistry import CoffeeRegistry
+from coffee.core.runtime.contener.CofeeRegistry import DefaultCoffeeRegistry
 
-registry = CoffeeRegistry()
+registry = DefaultCoffeeRegistry()
 
 
 def Module(module: type) -> type:

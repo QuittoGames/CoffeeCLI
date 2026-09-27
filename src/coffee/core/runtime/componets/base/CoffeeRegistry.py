@@ -9,4 +9,5 @@ from coffee.core.runtime.componets.base.CoffeeComponent import CoffeeComponent
 class CoffeeRegistry(ABC):
     domain = TypeVar("domain", bound=CoffeeComponent)
 
-    def register(self) -> None: ...
+    @classmethod
+    def register(cls, component: type) -> type: ...

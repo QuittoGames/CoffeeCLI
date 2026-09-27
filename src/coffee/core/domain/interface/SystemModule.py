@@ -1,7 +1,6 @@
 from abc import ABC
 from coffee.core.runtime.componets.base.CoffeeComponent import CoffeeComponent
 
-
 class SystemModule(CoffeeComponent, ABC):
     __slots__ = ("_id", "_name", "_version")
 

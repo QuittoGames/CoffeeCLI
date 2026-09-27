@@ -1,11 +1,11 @@
 from coffee.core.domain.interface.SystemModule import SystemModule
-from coffee.core.runtime.componets.base.CoffeeComponent import CoffeeComponent
+from coffee.core.runtime.componets.base.CoffeeRegistry import CoffeeRegistry
 from typing import TypeVar
 
 T = TypeVar("T", bound=SystemModule)
 
 
-class CoffeeRegistry:
+class DefaultCoffeeRegistry(CoffeeRegistry):
     components: dict[type, type] = {}
     moduleRegestry: dict[str, SystemModule] = {}
 

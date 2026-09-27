@@ -2,7 +2,7 @@ import inspect
 
 from coffee.core.data.Config import Config
 from coffee.core.domain.interface.SystemModule import SystemModule
-from coffee.core.runtime.contener.CofeeRegistry import CoffeeRegistry
+from coffee.core.runtime.contener.CofeeRegistry import DefaultCoffeeRegistry
 
 
 class CoffeeApplicationContainer:
@@ -29,7 +29,7 @@ class CoffeeApplicationContainer:
         raise NotImplementedError("_create() is not implemented yet")
 
     def get(self, component: type):
-        implementation = CoffeeRegistry.get(component)
+        implementation = DefaultCoffeeRegistry.get(component)
 
         if implementation is None:
             raise LookupError(f"Component not registered: {component.__name__}")
