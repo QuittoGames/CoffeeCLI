@@ -1,6 +1,6 @@
 import argparse
-from coffee.core.runtime.componets.Componet import Component
-from coffee.core.Services.module.ModuleManager import ModuleManager
+from coffee.core.runtime.components.Component import Component
+from coffee.core.services.module.ModuleManager import ModuleManager
 from coffee.core.data.Config import Config
 
 

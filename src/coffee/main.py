@@ -1,8 +1,8 @@
 from coffee.core.data.Config import Config
-from coffee.core.Services.tool import tool
+from coffee.core.services.tool import tool
 import asyncio
-from coffee.core.runtime.CoffeAplicationRuntime import CoffeeApplicationRuntime
-from coffee.core.domain.exepiton.InvalidCoffeeAplicationException import (
+from coffee.core.runtime.CoffeeApplicationRuntime import CoffeeApplicationRuntime
+from coffee.core.domain.exceptions.InvalidCoffeeApplicationException import (
     InvalidCoffeeApplicationException,
 )
 
@@ -25,7 +25,7 @@ async def main(app: CoffeeApplicationRuntime):
             )
 
     except (StopAsyncIteration, InvalidCoffeeApplicationException) as E:
-        print(f"[ERROR] Erro StopAsycnInteration, Erro: {E}")
+        print(f"[ERROR] Erro StopAsyncIteration, Erro: {E}")
 
 
 if __name__ == "__main__":

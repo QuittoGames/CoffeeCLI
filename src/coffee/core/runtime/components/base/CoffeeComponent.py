@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
 class CoffeeComponent(ABC):
-    regitry = None
+    registry = None
 
     def initialize(self) -> None:
         pass

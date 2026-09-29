@@ -4,7 +4,6 @@ from coffee.core.data.Host import Host
 import os
 from platformdirs import user_config_dir
 
-
 @dataclass
 class Config:
     configPath: Path = Path(user_config_dir("Coffee"))

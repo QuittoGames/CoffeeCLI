@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from coffee.core.runtime.componets.ModulePackage import Module
+from coffee.core.runtime.components.ModulePackage import Module
 
 
 @dataclass

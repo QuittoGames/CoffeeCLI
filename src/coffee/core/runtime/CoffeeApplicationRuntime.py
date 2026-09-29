@@ -2,7 +2,7 @@ import inspect
 from collections.abc import Callable
 
 from coffee.core.data.Config import Config
-from coffee.core.runtime.contener.CoffeeApplicationContainer import (
+from coffee.core.runtime.container.CoffeeApplicationContainer import (
     CoffeeApplicationContainer,
 )
 

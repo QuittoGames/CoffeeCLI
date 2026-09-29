@@ -1,4 +1,4 @@
-from coffee.core.runtime.contener.CofeeRegistry import DefaultCoffeeRegistry
+from coffee.core.runtime.container.DefaultCoffeeRegistry import DefaultCoffeeRegistry
 from coffee.core.domain.interface.SystemModule import SystemModule
 from typing import TypeVar
 

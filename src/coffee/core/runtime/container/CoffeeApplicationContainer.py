@@ -1,17 +1,18 @@
 import inspect
 
 from coffee.core.data.Config import Config
+from coffee.core.domain.models.Dependency import Dependency
 from coffee.core.domain.interface.SystemModule import SystemModule
-from coffee.core.runtime.contener.CofeeRegistry import DefaultCoffeeRegistry
+from coffee.core.runtime.container.DefaultCoffeeRegistry import DefaultCoffeeRegistry
 
 
 class CoffeeApplicationContainer:
-    dependencie: list[SystemModule] = []
-
     def __init__(self, config: Config):
         self.config = config
+        self.dependencies: list[Dependency] = []
+        self.systemModules: list[SystemModule] = []
 
-    def _create(self, dependency: type) -> type:
+    def _create(self, dependency: type) -> None:
         if dependency is None:
             raise RuntimeError("Dependency cannot be None")
 
@@ -26,7 +27,13 @@ class CoffeeApplicationContainer:
                 f"type={parameter.annotation}, "
                 f"default={parameter.default}"
             )
-        raise NotImplementedError("_create() is not implemented yet")
+            dep = Dependency(
+                name=parameter.name,
+                classImpl=parameter.annotation,
+            )
+
+            if dep not in self.dependencies:
+                self.dependencies.append(dep)
 
     def get(self, component: type):
         implementation = DefaultCoffeeRegistry.get(component)
