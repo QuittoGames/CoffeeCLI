@@ -38,13 +38,19 @@
   - [x] TASK-004: Validação — `compileall -f` OK, 33/33 módulos importam, `pip install -e .` OK
   - [ ] TASK-005: CI/validação contínua — adicionar check de `python -m compileall src` ao workflow (quando houver CI)
 
+- [x] [A][HIGH] TASK-100: Trocar tipos `SystemModule` → `CoffeeComponent` em `core/runtime/components/Component.py` (import, `TypeVar bound=`, assinatura; remover `TypeVar` morto + import `typing`) — `SystemModule` é contrato de módulos externos (`modules/`), não de componentes. DoD: grep `SystemModule` em `Component.py` = 0; `compileall` OK — **CUMPRIDO** (ver `doc.md` §16.11)
+- [x] [A][HIGH] TASK-101: Remover dead code `T = TypeVar("T", bound=SystemModule)` + import `SystemModule` + `abstractmethod` unused em `components/base/CoffeeRegistry.py`. DoD: arquivo sem `SystemModule`; `compileall` OK — **CUMPRIDO**
+- [x] [A][MEDIUM] TASK-102: Validar código pós-TASK-100/101 — `python -m compileall -f src` + import por módulo. DoD: exit 0; falhas apenas `CLI`/`ModuleManager` (bug `@Component` pré-existente, sem regressão) — **CUMPRIDO** (33/35 OK)
+- [x] [A][MEDIUM] TASK-103: Ajustar documentação — `docs/doc.md` (front matter 0.3.1, §4.5 snippet/anomalias, §16.2, novo §16.11, Apêndice A, CONFLICT do report global inexistente) + finding L53. DoD: grep `Component(component: SystemModule)` = 0 fora de contexto histórico — **CUMPRIDO**
+- [x] [A][MEDIUM] TASK-104: Ajustar caches — `.agents/state.json` (transição operacional) + `.agents/protocol/tasks/temp/docs-main-technical-context.md` (banner STALE apontando §16.10/§16.11). DoD: caches não contradizem o código novo — **CUMPRIDO**
+
 ## Shared
 
 - [ ] [S][REVIEW] Revisar CoffeeApplicationRuntime: decorator, typo getContener, try/finally
 - [ ] [S][REVIEW] Validar separação Runtime/Container/Config/Services
 - [ ] [S][REVIEW] Confirmar que ModuleManager NÃO deve ter @CoffeeApplicationRuntime
 - [ ] [S][REVIEW] Definir estrutura de pastas do CLI (plugins, domain, core, engine)
-- [ ] [S][REVIEW] OUT-OF-SCOPE FINDING: `@Component` em `ModuleManager` (e `RuntimeCLI`) quebra em runtime — `Component()` chama `registry.packageRegister()` que exige `.id`, mas classes não têm `id`; derruba `coffee.core.cli.CLI` e `coffee.core.services.module.ModuleManager` (import falha com `AttributeError`)
+- [ ] [S][REVIEW] OUT-OF-SCOPE FINDING: `@Component` em `ModuleManager` (e `RuntimeCLI`) quebra em runtime — `Component()` chama `registry.packageRegister()` que exige `.id`, mas classes não têm `id`; derruba `coffee.core.cli.CLI` e `coffee.core.services.module.ModuleManager` (import falha com `AttributeError`) — **tipagem do decorator corrigida p/ `CoffeeComponent` (TASK-100); Pylance sinaliza `packageRegister(component)` como manifestação estática do mesmo defeito. DECISION (DEV, 2026-09-29): MANTER `packageRegister` no decorator** (`packageRegister` = registro dos módulos de `modules/` carregados no container; anotação `type` simples reservada para eventual migração futura). Defeito segue ABERTO e conhecido — corrige apenas com `register()` ou `id` em `CoffeeComponent` (reabrir quando o DEV quiser)
 - [ ] [S][REVIEW] OUT-OF-SCOPE FINDING: `tool.menu()` não existe; `tool.verify_modules()` é `async` chamada sem `await` em `main.py`
 - [ ] [S][REVIEW] OUT-OF-SCOPE FINDING: diretórios vazios sem código (`core/domain/models/`, `modules/ssh/Adpiter/`, `modules/ssh/models/`, `modules/ssh/Services/`) — decidir se viram pacotes ou são removidos
 

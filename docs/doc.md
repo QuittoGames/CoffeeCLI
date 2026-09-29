@@ -1,9 +1,10 @@
 # Coffee CLI — Documentação Técnica Principal
 
-**Versão:** 0.3.0
-**Status:** FACT (verificado por execução/análise de código) + INFERENCE (onde a evidência é indireta) + PROPOSAL (intenção documentada, não implementada)
-**Última atualização:** 2026-09-28
-**Base de evidência:** relatório do `codebase-explorer` — `.agents/protocol/tasks/temp/docs-main-technical-context.md` (task context) e `.agents/protocol/docs/codebase-explorer.json` (report global), HEAD `cb2b812` — **atualizado por leitura direta em 2026-09-28** após (a) renomeação de typos no código e (b) evolução do Container/`Dependency` posteriores ao relatório do explorer.
+**Versão:** 0.3.1
+**Status:** FACT (verificado por execução/análise de código) + INFERENCE (onde a evidência é indireta) + PROPOSAL (intenção documentada, não implementada) + UNKNOWN (contexto insuficiente)
+**Última atualização:** 2026-09-29
+**Base de evidência:** task context do `codebase-explorer` — `.agents/protocol/tasks/temp/docs-main-technical-context.md`, HEAD `cb2b812` — **atualizado por leitura direta em 2026-09-28** após (a) renomeação de typos no código e (b) evolução do Container/`Dependency` posteriores ao relatório do explorer; **atualizado em 2026-09-29** após refatoração de tipos `SystemModule` → `CoffeeComponent` no decorator `@Component` (§4.5, §16.11).
+> **CONFLICT registrado (2026-09-29):** a linha "base de evidência" desta doc citava `.agents/protocol/docs/codebase-explorer.json` (report global) — **arquivo inexistente** (FACT; o diretório `protocol/docs/` nunca foi criado). A citação foi corrigida; o único artefato do explorer é o task context acima, que está **STALE** (gerado em `cb2b812`, pré-rename e pré-refatoração).
 
 > **Legenda de classificação** (usada em todo o documento):
 > `FACT` = suportado diretamente por código/execução · `INFERENCE` = inferência forte a partir de evidência · `PROPOSAL` = intenção documentada, não implementada · `UNKNOWN` = contexto insuficiente.
@@ -276,13 +277,14 @@ get(component) → registry.get(cls) → cls()   hoje: instancia sem injetar
 ```python
 registry = DefaultCoffeeRegistry()
 
-def Component(component: SystemModule) -> SystemModule:
+def Component(component: CoffeeComponent) -> CoffeeComponent:   # refatorado em 2026-09-29 (§16.11)
     registry.packageRegister(component)   # exige .id
     return component
 ```
 
 - **`Component` chama `packageRegister`, que faz `moduleRegistry[module.id]`** — classes decoradas **sem atributo `id`** explícito lançam `AttributeError` no momento do import.
-- Anomalias: `TypeVar component` declarado e não usado (7); `registry = DefaultCoffeeRegistry()` instanciado apesar de todos os métodos serem `@classmethod`; assinatura `Component(component: SystemModule) -> SystemModule` usada como decorator de classe.
+- Anomalias: `registry = DefaultCoffeeRegistry()` instanciado apesar de todos os métodos serem `@classmethod`; assinatura `Component(component: CoffeeComponent) -> CoffeeComponent` usada como decorator de classe (recebe **classes**, não instâncias).
+- **MISMATCH estático intencional (FACT, 2026-09-29):** `packageRegister` continua com `bound=SystemModule` (registry é orientado a **módulos** — `moduleRegistry`/`.id` são conceito de `SystemModule`), então Pylance sinaliza a chamada `packageRegister(component)` em `Component.py`. **DECISION (DEV, 2026-09-29): manter `packageRegister` no decorator** — `packageRegister` representa os módulos de `modules/` carregados no container; a anotação `type` simples fica reservada para eventual migração do decorator. O mismatch é a manifestação estática do defeito de runtime (§16.2), que permanece aberto (`TODO:53`).
 
 **`ModulePackage.py`**: `Module(module)` → `registry.register(module)` → `components[cls]` — este caminho não exige `.id` e funciona.
 
@@ -516,8 +518,8 @@ REST (geral) · MCP (agentes IA) · WebSocket/events (realtime) · capability la
 
 - **Comportamento (FACT — verificado em 2026-09-28, pós-rename):** `import coffee.core.services.module.ModuleManager` e `import coffee.core.cli.CLI` → `AttributeError: type object 'ModuleManager' has no attribute 'id'`. **2 módulos do projeto não importam.**
 - **Mecanismo:** `Component()` → `packageRegister(cls)` → `moduleRegistry[cls.id]` — classes decoradas não têm `id` de classe (`SystemModule.id` é property de **instância**).
-- **Anomalias:** arquivo `Componet.py` × classe `Component` (corrigido no rename); `TypeVar` sem uso; `registry` instanciado à toa; duas classes `CoffeeRegistry` homônimas (§4.4.4).
-- **Registro:** `docs/TODO.md:47` (OUT-OF-SCOPE FINDING).
+- **Anomalias:** arquivo `Componet.py` × classe `Component` (corrigido no rename); `TypeVar` sem uso (**corrigido em 2026-09-29** — §16.11); `registry` instanciado à toa; duas classes `CoffeeRegistry` homônimas (§4.4.4).
+- **Registro:** `docs/TODO.md:53` (OUT-OF-SCOPE FINDING).
 
 ### 16.3 `CoffeeApplicationContainer.py` — de `dependencie` morto à DI via `Dependency`
 
@@ -534,7 +536,7 @@ REST (geral) · MCP (agentes IA) · WebSocket/events (realtime) · capability la
 ### 16.4 `main.py` — estrutura DEV remendada por agente
 
 - **Class:** estrutura DEV (`1b938f2`) + remendos do agente (`b0c4c49`: `data`→`Config`, re-root de imports) · INFERENCE MEDIUM-HIGH p/ remendos, FACT p/ estado atual.
-- Defeitos verificados: `Start()` inalcançável → `tool.menu()` inexistente; `verify_modules()` sem `await`; condição `if not (app or ...)` nunca dispara. (Typo `"StopAsycnInteration"` corrigido em 2026-09-28 — §16.10.) Registro: `TODO:14,48`.
+- Defeitos verificados: `Start()` inalcançável → `tool.menu()` inexistente; `verify_modules()` sem `await`; condição `if not (app or ...)` nunca dispara. (Typo `"StopAsycnInteration"` corrigido em 2026-09-28 — §16.10.) Registro: `TODO:14,54`.
 
 ### 16.5 `CLI.py` e `ModuleManager.py`
 
@@ -583,7 +585,28 @@ Instrução do DEV: *"ajuste os typos do code interno"*. Renomeação em cascata
 
 **Validação pós-rename (FACT):** `python -m compileall -q src` → exit 0 · import por módulo → **13/15 OK**, falhando apenas `CLI` e `ModuleManager` (bug `@Component` pré-existente, §16.2 — nenhuma regressão) · grep de todos os typos em `src/` → **zero ocorrências**.
 
-**Fora do escopo deste rename (pendências separadas):** diretórios vazios `egine/` (nome UNDEFINED) e `modules/ssh/Adpiter/` — decisão em `TODO:49`; docs históricas (`runtime.md`, ADRs, specs, `components-aop.md`) ainda citam caminhos antigos (§17).
+**Fora do escopo deste rename (pendências separadas):** diretórios vazios `egine/` (nome UNDEFINED) e `modules/ssh/Adpiter/` — decisão em `TODO:55`; docs históricas (`runtime.md`, ADRs, specs, `components-aop.md`) ainda citam caminhos antigos (§17).
+
+### 16.11 Refatoração de tipos `SystemModule` → `CoffeeComponent` no decorator `@Component` (2026-09-29)
+
+| Campo | Valor |
+|---|---|
+| Instrução | DEV: `Component.py` aceitava `SystemModule` (contrato dos módulos externos de `modules/`); o tipo correto de componentes é `CoffeeComponent` |
+| Escopo | tipagem + caches + docs — **sem mudança de comportamento** |
+| Class | FACT (verificado por execução) |
+
+**Mudanças:**
+
+| Arquivo | Antes | Depois |
+|---|---|---|
+| `components/Component.py` | import `SystemModule`, `TypeVar("component", bound=SystemModule)`, `def Component(component: SystemModule) -> SystemModule` | import `CoffeeComponent`, **`TypeVar` morto removido** (+ import `typing`), `def Component(component: CoffeeComponent) -> CoffeeComponent` |
+| `components/base/CoffeeRegistry.py` | import `SystemModule` + `T = TypeVar("T", bound=SystemModule)` (**nunca usado**) + `abstractmethod` unused | todos removidos (dead code) |
+
+**Não mudou (usos legítimos de módulos externos):** `SystemModule.py` (contrato permanece), `ModuleManager` (`list[SystemModule]`), `CoffeeApplicationContainer.systemModules`, `DefaultCoffeeRegistry` (`bound=SystemModule` + `moduleRegistry: dict[str, SystemModule]` — registry orientado a módulos).
+
+**Validação (FACT):** `compileall -f` → exit 0 · import por módulo → **33/35 OK**, falhando apenas `CLI` e `ModuleManager` (bug `@Component` pré-existente, §16.2 — **sem regressão**) · grep residual: nenhuma referência a `SystemModule` fora dos usos legítimos.
+
+**Efeito colateral registrado:** Pylance sinaliza `packageRegister(component)` (bound `SystemModule` × argumento `CoffeeComponent`) — **DECISION (DEV, 2026-09-29): manter** (`packageRegister` = módulos de `modules/` no container); eliminá-lo exige decisão futura (migrar p/ `register()` com anotação `type`, ou declarar `id` em `CoffeeComponent`).
 
 ---
 
@@ -608,7 +631,7 @@ A fonte de verdade sobre **estado** é o **código**; a fonte documental **canô
 
 1. **Boot nunca completa** — `Config.build()` sempre lança (`Config.py:21-22`) → `Runtime.init()` falha → `stop()` não roda (`init()` fora do `try`).
 2. **Entrypoint de instalação quebrado** — `pyproject.toml:20` (decisão do DEV, `TODO:14`).
-3. **2 módulos não importam** — `CLI` e `ModuleManager` via `@Component`/`AttributeError` (`TODO:47`).
+3. **2 módulos não importam** — `CLI` e `ModuleManager` via `@Component`/`AttributeError` (`TODO:53`).
 4. **Container: DI incompleta** — `_create` descreve `dependencies` via `Dependency`, mas nunca é chamado e `get()` não injeta (§4.4.3); `systemModules` sem escritor/leitor.
 5. **Registry duplicado** — `container/DefaultCoffeeRegistry.py` × `components/base/CoffeeRegistry.py`.
 6. ~~**Typos em nomes públicos/pacotes**~~ — **CORRIGIDO em 2026-09-28** por instrução do DEV (§16.10); resta atualizar docs históricas que citam caminhos antigos (§17.8).
@@ -616,7 +639,7 @@ A fonte de verdade sobre **estado** é o **código**; a fonte documental **canô
 8. **Sem framework CLI, sem comandos** — `buildParser` sem chamador, `_addSubparsers` vazio.
 9. **Sem testes, sem CI, README vazio, LICENSE ausente** (referenciados por `pyproject.toml:16-17`).
 10. **Superfícies de segurança conhecidas** — `tool.py` pip/`sys.path`, `Config`/`Host` fora de adapter (harness §37).
-11. **Diretórios órfãos** — `egine/` (UNDEFINED), `modules/ssh/{Adpiter,models,Services}/` (`TODO:49`).
+11. **Diretórios órfãos** — `egine/` (UNDEFINED), `modules/ssh/{Adpiter,models,Services}/` (`TODO:55`).
 12. **Trabalho não commitado** — renomeações/edits de 2026-09-28 (case-rename `services` staged via `git mv`; demais mudanças no working tree) + `state.json` com mojibake.
 13. **Ambiente** — `.venv` observado sem `platformdirs` apesar de `TODO:38` registrar `pip install -e .` OK.
 14. **`main.py` defects** — `tool.menu()` inexistente, `verify_modules()` sem `await`, `Start()` inalcançável.
@@ -643,7 +666,7 @@ Cada item de §18 corresponde a entrada em `docs/TODO.md` ([H] decisão do DEV, 
 
 | Arquivo | Status | Observação |
 |---|---|---|
-| `docs/doc.md` | **ESTE ARQUIVO (0.3.0)** | doc principal, atualizada contra HEAD `cb2b812` + rename 2026-09-28 |
+| `docs/doc.md` | **ESTE ARQUIVO (0.3.1)** | doc principal, atualizada contra HEAD `cb2b812` + rename 2026-09-28 + refatoração de tipos 2026-09-29 (§16.11) |
 | `docs/TODO.md` | não commitado | registra os findings (14-15, 47-49) |
 | `docs/ai/STATE.md` | 2026-09-23 | itens 5-6 do próximo passo já feitos; item 7 mudou de objeto |
 | `docs/architecture/runtime.md` | PROPOSAL, stale | §7 = código anterior ao HEAD; conflitos em §17 |

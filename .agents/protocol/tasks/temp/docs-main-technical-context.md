@@ -1,5 +1,10 @@
 # Codebase Explorer — Task Context: Documentação Técnica Principal (CoffeeCLI)
 
+> **⚠️ STALE (2026-09-29) — não usar como fonte de estado atual.** Artefato histórico gerado em `cb2b812`; o código mudou desde então:
+> 1. **Renomeação de typos (2026-09-28, DECISION do DEV):** todos os paths `contener/`, `componets/`, `Componet.py`, `CofeeRegistry.py`, `moduleRegestry`, `Services/`, `exepiton/` citados aqui estão **obsoletos** — ver `docs/doc.md` §16.10.
+> 2. **Refatoração de tipos (2026-09-29):** o decorator `Component` agora usa `CoffeeComponent` (não `SystemModule`) e os `TypeVar` mortos de `Component.py`/`base/CoffeeRegistry.py` foram removidos — as linhas **156, 158, 207-208, 211** que descrevem a assinatura antiga estão **obsoletas** — ver `docs/doc.md` §4.5/§16.11.
+> 3. Fonte atual: `docs/doc.md` (0.3.1). Regenerar este contexto antes de reutilizá-lo.
+
 - **Modo:** TASK CONTEXT EXPLORATION
 - **Gerado em:** 2026-09-28
 - **Base report global:** `.agents/protocol/docs/codebase-explorer.json` — **NÃO EXISTE** (FACT: primeira exploração; nenhum relatório global prévio no projeto)

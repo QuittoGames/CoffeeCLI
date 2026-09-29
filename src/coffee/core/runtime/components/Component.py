@@ -1,12 +1,9 @@
 from coffee.core.runtime.container.DefaultCoffeeRegistry import DefaultCoffeeRegistry
-from coffee.core.domain.interface.SystemModule import SystemModule
-from typing import TypeVar
+from coffee.core.runtime.components.base.CoffeeComponent import CoffeeComponent
 
 registry = DefaultCoffeeRegistry()
 
-component = TypeVar("component", bound=SystemModule)
 
-
-def Component(component: SystemModule) -> SystemModule:
+def Component(component: CoffeeComponent) -> CoffeeComponent:
     registry.packageRegister(component)
     return component
