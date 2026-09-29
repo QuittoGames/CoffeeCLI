@@ -11,6 +11,8 @@
 - [ ] [H][MEDIUM] Validar arquitetura plugin-oriented
 - [ ] [H][LOW] Decidir sobre offline mode/sync no V1
 - [ ] [H][LOW] Definir formato de Context Pack
+- [ ] [H][HIGH] Decidir entrypoint do pyproject: `coffee = "coffee.cli.main:main"` aponta para módulo inexistente (`src/coffee/cli/` não existe). Alvo provável `coffee.main:main`, mas `main` é coroutine decorada por `@CoffeeApplicationRuntime` e `Start()` chama `tool.menu()` (inexistente) — comportamento do entrypoint é decisão do DEV
+- [x] [H][MEDIUM] ~~Decidir renomeação de estrutura inconsistente: `CoffeAplicationRuntime.py`, `contener/`, `componets/`, `exepiton/`, `Services/` (maiúsculo)~~ — **EXECUTADO em 2026-09-28 por instrução explícita do DEV** (rename completo + identificadores, validado: compileall OK, 13/15 imports, zero typos em `src/`); tabela completa em `docs/doc.md` §16.10
 
 ## Agent
 
@@ -29,6 +31,12 @@
 - [x] [A][MECHANICAL] Criar research placeholder `docs/research/cli-framework-comparison.md`
 - [ ] [A][MECHANICAL] Documentar domain models (Task, Project, Repository, Machine, Context) — parcialmente em spec
 - [ ] [A][MECHANICAL] Mapear código atual para doc (gaps conceito vs implementação) — em `docs/doc.md` §17
+- [x] [A][MECHANICAL] Saneamento de imports/IntelliSense (TASK-001..004)
+  - [x] TASK-001: Criar `__init__.py` em 10 pacotes sem eles (`modules/`, `core/data/`, `core/runtime/`, `core/runtime/componets/`, `componets/base/`, `contener/`, `core/Services/`, `Services/module/`, `domain/exepiton/`, `domain/interface/`) — setuptools `packages.find` não os empacotava e o Pylance perdia a resolução de classe (`Expected class but received "SystemModule"`)
+  - [x] TASK-002: Corrigir `IndentationError` + `TypeVar T` não definido em `core/runtime/componets/base/CoffeeRegistry.py`
+  - [x] TASK-003: Declarar `dependencies = ["platformdirs"]` no `pyproject.toml` (usado em `core/data/Config.py`)
+  - [x] TASK-004: Validação — `compileall -f` OK, 33/33 módulos importam, `pip install -e .` OK
+  - [ ] TASK-005: CI/validação contínua — adicionar check de `python -m compileall src` ao workflow (quando houver CI)
 
 ## Shared
 
@@ -36,6 +44,9 @@
 - [ ] [S][REVIEW] Validar separação Runtime/Container/Config/Services
 - [ ] [S][REVIEW] Confirmar que ModuleManager NÃO deve ter @CoffeeApplicationRuntime
 - [ ] [S][REVIEW] Definir estrutura de pastas do CLI (plugins, domain, core, engine)
+- [ ] [S][REVIEW] OUT-OF-SCOPE FINDING: `@Component` em `ModuleManager` (e `RuntimeCLI`) quebra em runtime — `Component()` chama `registry.packageRegister()` que exige `.id`, mas classes não têm `id`; derruba `coffee.core.cli.CLI` e `coffee.core.services.module.ModuleManager` (import falha com `AttributeError`)
+- [ ] [S][REVIEW] OUT-OF-SCOPE FINDING: `tool.menu()` não existe; `tool.verify_modules()` é `async` chamada sem `await` em `main.py`
+- [ ] [S][REVIEW] OUT-OF-SCOPE FINDING: diretórios vazios sem código (`core/domain/models/`, `modules/ssh/Adpiter/`, `modules/ssh/models/`, `modules/ssh/Services/`) — decidir se viram pacotes ou são removidos
 
 ## Blocked
 
@@ -56,3 +67,6 @@
 - [x] [H] CoffeeApplicationRuntime conceituado e documentado
 - [x] [H] Decisões macro do ecossistema registradas
 - [x] [H] Python como CLI V1, C++ como engine nativa isolada
+- [x] [A] `__init__.py` criados em todos os pacotes com código (10 pacotes)
+- [x] [A] `CoffeeRegistry.py` indentação/TypeVar corrigidos
+- [x] [A] `platformdirs` declarado no pyproject; pacote instalado via `pip install -e .`
