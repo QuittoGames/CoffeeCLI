@@ -1,0 +1,14 @@
+{
+  "mode": "task-execution",
+  "objective": "Saneamento de imports do Coffee CLI para resolução pelo interpretador/IntelliSense",
+  "currentTask": "TASK-001..004 concluídos; TASK-005 (CI check) pendente",
+  "validationStatus": "PASS — compileall -f OK, 33/33 módulos importam, pip install -e . OK",
+  "nextStep": "DEV revisar findings em docs/TODO.md (entrypoint quebrado, @Component em ModuleManager)",
+  "blockers": [
+    "Subagentes import-cleaner e task-scheduler indisponíveis no runtime (modelo); trabalho executado inline"
+  ],
+  "openQuestions": [
+    "Entrypoint do pyproject: coffee.cli.main:main não existe — decisão do DEV",
+    "Renomear estrutura inconsistente (contener, componets, exepiton, Services)? — decisão do DEV"
+  ]
+}
