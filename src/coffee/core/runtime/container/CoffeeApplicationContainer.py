@@ -22,11 +22,12 @@ class CoffeeApplicationContainer:
             if parameter.name == "self":
                 continue
 
-            print(
-                f"name={parameter.name}, "
-                f"type={parameter.annotation}, "
-                f"default={parameter.default}"
-            )
+            if self.config.Debug:
+                print(
+                    f"name={parameter.name}, "
+                    f"type={parameter.annotation}, "
+                    f"default={parameter.default}"
+                )
             dep = Dependency(
                 name=parameter.name,
                 classImpl=parameter.annotation,
