@@ -1,35 +1,47 @@
+from typing import TypeVar
+from uuid import uuid4
+
+from coffee.core.domain.models.Dependency import Dependency
 from coffee.core.domain.interface.SystemModule import SystemModule
 from coffee.core.runtime.components.base.CoffeeRegistry import CoffeeRegistry
-from typing import TypeVar
 
-T = TypeVar("T", bound=SystemModule)
+moduleType = TypeVar("moduleType", bound=SystemModule)
+
 
 class DefaultCoffeeRegistry(CoffeeRegistry):
-    components: dict[type, type] = {}
-    moduleRegistry: dict[str, SystemModule] = {}
+    dependencies: list[Dependency] = []
+    systemModules: list[SystemModule] = []
 
     @classmethod
     def register(cls, component: type) -> type:
-        cls.components[component] = component
+        cls.dependencies.append(
+            Dependency(id=uuid4(), name=component.__name__, classImpl=component)
+        )
         return component
 
     @classmethod
-    def packageRegister(cls, module: T) -> T:
-        cls.moduleRegistry[module.id] = module
+    def packageRegister(cls, module: moduleType) -> moduleType:
+        cls.systemModules.append(module)
         return module
 
     @classmethod
     def contains(cls, component: type) -> bool:
-        return component in cls.components
+        return cls.get(component) is not None
 
     @classmethod
     def get(cls, component: type) -> type | None:
-        return cls.components.get(component)
+        for dependency in cls.dependencies:
+            if dependency.classImpl is component:
+                return dependency.classImpl
+        return None
 
     @classmethod
-    def getModule(cls, module: type) -> type | None:
-        return cls.components.get(module)
+    def getModule(cls, module: type) -> SystemModule | None:
+        for registered in cls.systemModules:
+            if registered is module:
+                return registered
+        return None
 
     @classmethod
-    def all(cls) -> tuple[type, ...]:
-        return tuple(cls.components.keys())
+    def all(cls) -> tuple[Dependency, ...]:
+        return tuple(cls.dependencies)

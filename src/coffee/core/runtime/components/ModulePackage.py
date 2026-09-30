@@ -4,5 +4,5 @@ registry = DefaultCoffeeRegistry()
 
 
 def Module(module: type) -> type:
-    registry.register(module)
+    registry.packageRegister(module)
     return module

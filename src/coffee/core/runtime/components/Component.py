@@ -5,5 +5,5 @@ registry = DefaultCoffeeRegistry()
 
 
 def Component(component: CoffeeComponent) -> CoffeeComponent:
-    registry.packageRegister(component)
+    registry.register(component)
     return component
