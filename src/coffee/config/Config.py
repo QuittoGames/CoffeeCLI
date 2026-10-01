@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from pathlib import Path
-from coffee.core.data.Host import Host
+from coffee.data.Host import Host
 import os
 from platformdirs import user_config_dir
 

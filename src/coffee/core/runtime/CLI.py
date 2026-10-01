@@ -1,8 +1,7 @@
 import argparse
-from coffee.core.runtime.components.Component import Component
+from coffee.core.components.decorators.Component import Component
 from coffee.core.services.module.ModuleManager import ModuleManager
-from coffee.core.data.Config import Config
-
+from coffee.config.Config import Config
 
 @Component
 class RuntimeCLI:

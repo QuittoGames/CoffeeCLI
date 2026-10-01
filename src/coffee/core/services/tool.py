@@ -1,7 +1,7 @@
 import os
 import platform
 from dataclasses import dataclass
-from coffee.core.data.Config import Config
+from coffee.config.Config import Config
 import subprocess
 import sys
 

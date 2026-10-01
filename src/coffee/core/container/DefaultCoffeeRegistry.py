@@ -3,24 +3,25 @@ from uuid import uuid4
 
 from coffee.core.domain.models.Dependency import Dependency
 from coffee.core.domain.interface.SystemModule import SystemModule
-from coffee.core.runtime.components.base.CoffeeRegistry import CoffeeRegistry
+from coffee.core.components.CoffeeComponent import CoffeeComponent
+from coffee.core.container.CoffeeRegistry import CoffeeRegistry
 
 moduleType = TypeVar("moduleType", bound=SystemModule)
 
 
 class DefaultCoffeeRegistry(CoffeeRegistry):
     dependencies: list[Dependency] = []
-    systemModules: list[SystemModule] = []
+    systemModules: list[type[SystemModule]] = []
 
     @classmethod
-    def register(cls, component: type) -> type:
+    def register(cls, component: type[CoffeeComponent]) -> type[CoffeeComponent]:
         cls.dependencies.append(
             Dependency(id=uuid4(), name=component.__name__, classImpl=component)
         )
         return component
 
     @classmethod
-    def packageRegister(cls, module: moduleType) -> moduleType:
+    def packageRegister(cls, module: type[moduleType]) -> type[moduleType]:
         cls.systemModules.append(module)
         return module
 
@@ -36,7 +37,7 @@ class DefaultCoffeeRegistry(CoffeeRegistry):
         return None
 
     @classmethod
-    def getModule(cls, module: type) -> SystemModule | None:
+    def getModule(cls, module: type) -> type[SystemModule] | None:
         for registered in cls.systemModules:
             if registered is module:
                 return registered

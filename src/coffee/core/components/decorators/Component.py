@@ -1,9 +1,11 @@
-from coffee.core.runtime.container.DefaultCoffeeRegistry import DefaultCoffeeRegistry
-from coffee.core.runtime.components.base.CoffeeComponent import CoffeeComponent
+from typing import TypeVar
 
-registry = DefaultCoffeeRegistry()
+from coffee.core.container.registry import registry
+from coffee.core.components.CoffeeComponent import CoffeeComponent
+
+T = TypeVar("T", bound=CoffeeComponent)
 
 
-def Component(component: CoffeeComponent) -> CoffeeComponent:
+def Component(component: type[T]) -> type[T]:
     registry.register(component)
     return component

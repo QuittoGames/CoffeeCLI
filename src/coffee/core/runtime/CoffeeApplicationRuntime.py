@@ -1,14 +1,17 @@
 import inspect
 from collections.abc import Callable
 
-from coffee.core.data.Config import Config
-from coffee.core.runtime.container.CoffeeApplicationContainer import (
+from coffee.config.Config import Config
+from coffee.core.container.CoffeeApplicationContainer import (
     CoffeeApplicationContainer,
 )
+from coffee.core.container.registry import registry
+from coffee.core.container.CoffeeRegistry import CoffeeRegistry
 
 
 class CoffeeApplicationRuntime:
     _container: CoffeeApplicationContainer | None = None
+    _registry: CoffeeRegistry | None = None
 
     def __init__(self, func: Callable[..., object] | None = None) -> None:
         self._func = func
@@ -19,6 +22,7 @@ class CoffeeApplicationRuntime:
             return
 
         config = Config().build()
+        cls._registry = registry
 
         cls._container = CoffeeApplicationContainer(
             config=config,

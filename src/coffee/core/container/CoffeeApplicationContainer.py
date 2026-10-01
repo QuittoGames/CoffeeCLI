@@ -1,10 +1,9 @@
 import inspect
 
-from coffee.core.data.Config import Config
+from coffee.config.Config import Config
 from coffee.core.domain.models.Dependency import Dependency
 from coffee.core.domain.interface.SystemModule import SystemModule
-from coffee.core.runtime.container.DefaultCoffeeRegistry import DefaultCoffeeRegistry
-
+from coffee.core.container.DefaultCoffeeRegistry import DefaultCoffeeRegistry
 
 class CoffeeApplicationContainer:
     def __init__(self, config: Config):

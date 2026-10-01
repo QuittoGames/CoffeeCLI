@@ -1,10 +1,26 @@
-from dataclasses import dataclass
-from coffee.core.runtime.components.ModulePackage import Module
+from coffee.core.components.decorators.Module import Module
+from coffee.core.domain.interface.SystemModule import SystemModule
 
 
-@dataclass
 @Module
-class SSHModule:
-    id = "ssh_module"
-    name = "SSH Module"
-    version = "0.1v"
+class SSHModule(SystemModule):
+
+    @property
+    def id(self) -> str:
+        return "ssh_module"
+
+    @property
+    def name(self) -> str:
+        return getattr(self, "_name", "SSH Module")
+
+    @name.setter
+    def name(self, value: str) -> None:
+        self._name = value
+
+    @property
+    def version(self) -> str:
+        return "0.1v"
+
+    @version.setter
+    def version(self, value: str) -> None:
+        self._version = value

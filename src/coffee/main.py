@@ -1,4 +1,4 @@
-from coffee.core.data.Config import Config
+from coffee.config.Config import Config
 from coffee.core.services.tool import tool
 import asyncio
 from coffee.core.runtime.CoffeeApplicationRuntime import CoffeeApplicationRuntime

@@ -2,7 +2,7 @@ from typing import TypeVar
 from dataclasses import dataclass
 from abc import ABC
 
-from coffee.core.runtime.components.base.CoffeeComponent import CoffeeComponent
+from coffee.core.components.CoffeeComponent import CoffeeComponent
 
 
 @dataclass
