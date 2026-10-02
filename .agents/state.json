@@ -1,17 +1,19 @@
 {
   "mode": "task-execution",
-  "objective": "Refatoração de tipos do decorator @Component: SystemModule → CoffeeComponent (tipagem + caches + docs)",
-  "currentTask": "TASK-100..104 concluídos; DECISION do DEV registrada: manter packageRegister no decorator (packageRegister = módulos de modules/ no container)",
-  "validationStatus": "PASS — compileall -f OK; import 33/35 (falhas conhecidas CLI/ModuleManager = bug @Component pré-existente, sem regressão); grep residual: SystemModule só em usos legítimos (contrato, ModuleManager, Container, DefaultCoffeeRegistry)",
-  "nextStep": "Defeito @Component/packageRegister permanece ABERTO e documentado (docs/TODO.md:53) — reabrir apenas se DEV pedir migração p/ register() ou id em CoffeeComponent",
+  "objective": "DOC SYNC + IMPORT MIGRATION CoffeeCLI (2026-10-01) — alinhar imports à estrutura real e sincronizar docs com o código",
+  "currentTask": "Concluído: saneamento de imports (5 instâncias import-cleaner + fix abstractmethod em CoffeeComponent.py, 61/61 resolvem) e sincronização documental — doc.md v0.3.2 (paths pós-restructure, boot flow, §4/§6/§16/§18), runtime.md §7/§8 (banner de snapshot desatualizado + paths), components-aop.md, .agents/specs, TODO.md (:14/:53/:54 + Completed), STATE.md reescrito para 2026-10-01",
+  "validationStatus": "PASS — compileall exit 0; boot verificado por execução (python src/coffee/main.py → exit 0, imprime 'coffe') após reescrita de Config.build() pelo DEV; TODO:53/:54 confirmados nas linhas 53/54; grep de paths antigos em docs = apenas histórico intencional (ADRs 006/007, drawio, §16.10/§16.11, TODO histórico)",
+  "nextStep": "Commit local (staging explícito: código Config/Container/Runtime/main/CoffeeComponent + docs/.agents) seguido de push (autorizado pelo DEV no comando /commit: 'push autorizado, faça isso após finalizar a inserção na doc')",
   "blockers": [
-    "Subagente task-scheduler indisponível no runtime (modelo qwen3.5:9b); plano TASK-100..104 montado manualmente e executado inline pelo agente"
+    "TASK CONFLICT (resolvido por preservação): edições paralelas do DEV em main.py/Config.py/Container.py/Runtime.py durante a sessão foram preservadas intocadas e SINTETIZADAS na doc (boot exit 0, config via container)"
   ],
   "openQuestions": [
-    "Entrypoint do pyproject: coffee.cli.main:main não existe — decisão do DEV",
-    "Relatório global .agents/protocol/docs/codebase-explorer.json nunca existiu (doc.md citava) — adotar o protocolo global ou manter só task contexts?"
+    "Entrypoint do pyproject: coffee.cli.main:main não existe — decisão do DEV (TODO:14)",
+    "Estado do @Component: DECISION registrada dizia manter packageRegister, mas código atual usa register (c60908d) — confirmar com DEV (TODO:53)",
+    "Classificação arquitetural de config/ e data/ vs core/modules — UNKNOWN",
+    "Resíduos OUT-OF-SCOPE no Config.build(): condição invertida sempre recria Host(); from time import sleep unused; import Config unused em main.py"
   ],
   "decisions": [
-    "DECISION (DEV, 2026-09-29): packageRegister mantido no decorator @Component — representa os módulos de src/coffee/modules/ carregados no container; anotação `type` simples reservada para eventual migração futura"
+    "DECISION (DEV, 2026-09-29): packageRegister mantido no decorator @Component — anotação `type` simples reservada para migração futura (DRIFT com código atual, TODO:53)"
   ]
 }

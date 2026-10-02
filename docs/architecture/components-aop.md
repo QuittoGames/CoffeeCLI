@@ -102,19 +102,20 @@ Assim, o Coffee deixa de ser apenas uma coleção de módulos e passa a possuir 
 
 | Item | Conceito | Código hoje |
 |---|---|---|
-| `CoffeeComponent` | abstração base | **existe** — `src/coffee/core/runtime/componets/base/CoffeeComponent.py` (ABC + `initialize()`) |
-| Tipos especializados (`Component`, `Service`, `Module`, `Repository`, `System Functions`) | unidades funcionais | **parcial** — apenas o decorator `@Component` (`componets/Componet.py`) existe |
-| `CoffeeRegistry` | registro / discovery / resolution | **em construção, duas definições homônimas**: `contener/CofeeRegistry.py` (funcional) e `componets/base/CoffeeRegistry.py` (`register()` é stub) |
-| `CoffeeApplicationContainer` | DI | **parcial** — guarda apenas `Config`; `_create()` lança `NotImplementedError` |
+| `CoffeeComponent` | abstração base | **existe** — `src/coffee/core/components/CoffeeComponent.py` (ABC + `initialize()`) |
+| Tipos especializados (`Component`, `Service`, `Module`, `Repository`, `System Functions`) | unidades funcionais | **parcial** — apenas os decorators `@Component` (`components/decorators/Component.py`) e `@Module` (`components/decorators/Module.py`) existem; os demais, não |
+| `CoffeeRegistry` | registro / discovery / resolution | **herança (não duplicação)** — ABC `CoffeeRegistry` (`container/CoffeeRegistry.py`) + `DefaultCoffeeRegistry(CoffeeRegistry)` (`container/DefaultCoffeeRegistry.py`, funcional: listas `dependencies`/`systemModules`); singleton em `container/registry.py` |
+| `CoffeeApplicationContainer` | DI | **parcial** — guarda `Config` + `dependencies: list[Dependency]` + `systemModules`; `_create()` reflete assinaturas mas **nunca é chamado** e `get()` não injeta (ver `docs/doc.md` §4.4) |
 | AOP transversal | comportamentos sobre componentes | **não implementado** — único around existente é o decorator de lifecycle (`CoffeeApplicationRuntime.__call__`) |
-| `@Component` → registro | declaração → registry | **quebra** — chama `packageRegister()`, que exige `.id`; classes sem `.id` falham (`AttributeError`) |
+| `@Component` → registro | declaração → registry | **funciona (2026-10-01)** — chama `register()` (desde `c60908d`), sem exigência de `.id`; até 2026-09-30 chamava `packageRegister()` e quebrava com `AttributeError` |
+
+> **Atualizado em 2026-10-01** contra o código pós-`c60908d`/`3d47da8` (paths e status); até 2026-09-30 esta tabela citava `componets/`, `contener/` e o defeito de `.id`.
 
 ### Decisões abertas relacionadas
 
 ```text
-register() × packageRegister() no decorator @Component  → aguardando DEV
-CoffeeRegistry duplicado (base/ × contener/)             → aguardando DEV
-formato do contrato de plugin                            → UNDEFINED
+DECISION (2026-09-29) manter packageRegister × código usa register  → CONFLICT aguardando DEV (doc.md §17.9, TODO:53)
+formato do contrato de plugin                                       → UNDEFINED
 ```
 
 ---

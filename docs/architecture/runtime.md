@@ -2,8 +2,10 @@
 
 **Status:** PROPOSAL (conceituação validada pelo DEV; implementação atual é parcial — ver §7)  
 **Código-fonte:**
-- `src/coffee/core/runtime/CoffeAplicationRuntime.py`
-- `src/coffee/core/runtime/contener/CoffeeApplicationContainer.py`
+- `src/coffee/core/runtime/CoffeeApplicationRuntime.py`
+- `src/coffee/core/container/CoffeeApplicationContainer.py`
+
+> **Paths atualizados em 2026-10-01** (antes: `CoffeAplicationRuntime.py`, `runtime/contener/` — typos corrigidos no rename de 2026-09-28 e estrutura movida no restructure `3d47da8`; ver `docs/doc.md` §3.2/§16.10).
 
 ---
 
@@ -189,22 +191,31 @@ A `Config` **não** deve conhecer os serviços do Coffee nem ser responsável po
 ### 5.1 Estrutura do código
 
 ```text
-src/coffee/core/
-├── runtime/
-│   ├── CoffeAplicationRuntime.py        # Ciclo de vida + decorator
-│   └── contener/
-│       └── CoffeeApplicationContainer.py # Contexto compartilhado
+src/coffee/
+├── config/
+│   └── Config.py                        # Configurações (dado)
 ├── data/
-│   ├── Config.py                        # Configurações (dado)
 │   └── Host.py                          # Dados de host
-├── Services/
-│   └── module/
-│       └── ModuleManager.py             # Serviço de módulos
-├── cli/
-│   └── CLI.py                           # Ponto de entrada CLI
-└── domain/
-    └── models/                          # Modelos de domínio
+└── core/
+    ├── runtime/
+    │   ├── CoffeeApplicationRuntime.py  # Ciclo de vida + decorator
+    │   ├── CLI.py                       # Ponto de entrada CLI
+    │   └── lifecycle/
+    ├── container/
+    │   ├── CoffeeApplicationContainer.py # Contexto compartilhado
+    │   ├── CoffeeRegistry.py             # ABC do registry
+    │   ├── DefaultCoffeeRegistry.py      # Registry funcional
+    │   └── registry.py                   # Singleton registry
+    ├── components/
+    │   ├── CoffeeComponent.py            # ABC base
+    │   └── decorators/                   # @Component, @Module
+    ├── services/
+    │   └── module/ModuleManager.py       # Serviço de módulos
+    └── domain/
+        └── models/                       # Modelos de domínio
 ```
+
+> **Estrutura atualizada em 2026-10-01** (o quadro anterior refletia a árvore pré-rename: `contener/`, `Services/`, `cli/`, `data/` dentro de `core/` — ver `docs/doc.md` §3.2).
 
 ### 5.2 Fluxo de inicialização
 
@@ -356,6 +367,8 @@ Isso concentra a montagem em um ponto único e previsível.
 
 ## 7. Implementação atual (FACT)
 
+> **STATUS 2026-10-01 — snapshot DESATUALIZADO:** o quadro abaixo anterior ao rework de `2026-09-28/29` (classmethods + `_container` de classe + decorator `__call__`/`_invokeAsync` funcionais + registry `DefaultCoffeeRegistry`). Ele ainda mostra `getContener` (typo corrigido no código), um container "só `Config`" e métodos de instância — **não é o código atual**. A implementação real está em `src/coffee/core/runtime/CoffeeApplicationRuntime.py` e é documentada em `docs/doc.md` §4.3/§4.4 (**doc.md prevalece** — DECISION 2026-09-28). Mantido abaixo como referência histórica do formato pretendido (§2–§5).
+
 O código real em `CoffeAplicationRuntime.py`:
 
 ```python
@@ -421,20 +434,22 @@ Hoje o container guarda **apenas** `Config`. `ModuleManager` e demais serviços 
 ### 8.1 Uso manual (disponível hoje)
 
 ```python
-from core.runtime.CoffeAplicationRuntime import CoffeeApplicationRuntime
+from coffee.core.runtime.CoffeeApplicationRuntime import CoffeeApplicationRuntime
 
 runtime = CoffeeApplicationRuntime()
 runtime.init()          # Config().build() + cria container
 
 try:
-    container = runtime.getContener()
+    container = runtime.getContainer()   # nome atual (typo getContener corrigido)
     config = container.getConfig()
     # ... lógica da aplicação ...
 finally:
     runtime.stop()      # libera o container
 ```
 
-### 8.2 Uso como decorator (CONCEITO — ainda não funcional)
+> **Nota (2026-10-01):** o caminho de import acima é o atual (`coffee.` root, pós-restructure); o exemplo anterior usava `core.runtime.CoffeAplicationRuntime` (path e typo obsoletos). `init()` fora do `try` continua sendo a assimetria conhecida (doc.md §4.3).
+
+### 8.2 Uso como decorator (FUNCIONAL — verificado 2026-10-01)
 
 O alvo de uso é o decorator:
 
@@ -458,15 +473,19 @@ finally:
     runtime.stop()
 ```
 
+> **STATUS 2026-10-01 (FACT — por execução):** o decorator **funciona** — `@CoffeeApplicationRuntime` (sem parênteses também é aceito) chama `_invokeAsync` → `init()` → `await func(self)` → `finally stop()`; `python src/coffee/main.py` completa com exit 0 (doc.md §4.1/§6.2 prevalecem). A tabela de "lacunas" da §7 acima é histórica.
+
 ### 8.3 Pontos de entrada previstos no código
 
 O padrão já aparece em:
 
 ```text
-src/coffee/main.py          → @CoffeeApplicationRuntime em main()
-src/coffee/core/cli/CLI.py  → @CoffeeApplicationRuntime em RuntimeCLI
-src/coffee/core/Services/module/ModuleManager.py → @CoffeeApplicationRuntime em ModuleManager
+src/coffee/main.py                          → @CoffeeApplicationRuntime em main()
+src/coffee/core/runtime/CLI.py              → @Component em RuntimeCLI   (hoje; antes @CoffeeApplicationRuntime)
+src/coffee/core/services/module/ModuleManager.py → @Component em ModuleManager (hoje; antes @CoffeeApplicationRuntime)
 ```
+
+> **Atualizado em 2026-10-01 (FACT):** os paths mudaram (`core/cli/` → `core/runtime/`, `core/Services/` → `core/services/`) e os decoradores de `CLI`/`ModuleManager` hoje são **`@Component`**, não `@CoffeeApplicationRuntime` (ver `docs/doc.md` §4.6/§4.7 — doc.md prevalece).
 
 > **Observação (FACT):** aplicar o runtime diretamente em `ModuleManager` contradiz §6.1 — serviços **não** devem controlar o lifecycle da aplicação. O decorator deve envolver **pontos de entrada**, não serviços. Isso pode ser um resquício exploratório e vale revisar.
 >

@@ -11,7 +11,7 @@
 - [ ] [H][MEDIUM] Validar arquitetura plugin-oriented
 - [ ] [H][LOW] Decidir sobre offline mode/sync no V1
 - [ ] [H][LOW] Definir formato de Context Pack
-- [ ] [H][HIGH] Decidir entrypoint do pyproject: `coffee = "coffee.cli.main:main"` aponta para módulo inexistente (`src/coffee/cli/` não existe). Alvo provável `coffee.main:main`, mas `main` é coroutine decorada por `@CoffeeApplicationRuntime` e `Start()` chama `tool.menu()` (inexistente) — comportamento do entrypoint é decisão do DEV
+- [ ] [H][HIGH] Decidir entrypoint do pyproject: `coffee = "coffee.cli.main:main"` aponta para módulo inexistente (`src/coffee/cli/` não existe). Alvo provável `coffee.main:main`, mas `main` é coroutine decorada por `@CoffeeApplicationRuntime` e `Start()` hoje contém placeholder `print("coffe")` — comportamento do entrypoint é decisão do DEV. **Status 2026-10-01:** pacote instalado via `pip install -e .` no `.venv` (`import coffee` resolve); o script `coffee.exe` existe mas falha com `ModuleNotFoundError: coffee.cli.main`
 - [x] [H][MEDIUM] ~~Decidir renomeação de estrutura inconsistente: `CoffeAplicationRuntime.py`, `contener/`, `componets/`, `exepiton/`, `Services/` (maiúsculo)~~ — **EXECUTADO em 2026-09-28 por instrução explícita do DEV** (rename completo + identificadores, validado: compileall OK, 13/15 imports, zero typos em `src/`); tabela completa em `docs/doc.md` §16.10
 
 ## Agent
@@ -50,8 +50,8 @@
 - [ ] [S][REVIEW] Validar separação Runtime/Container/Config/Services
 - [ ] [S][REVIEW] Confirmar que ModuleManager NÃO deve ter @CoffeeApplicationRuntime
 - [ ] [S][REVIEW] Definir estrutura de pastas do CLI (plugins, domain, core, engine)
-- [ ] [S][REVIEW] OUT-OF-SCOPE FINDING: `@Component` em `ModuleManager` (e `RuntimeCLI`) quebra em runtime — `Component()` chama `registry.packageRegister()` que exige `.id`, mas classes não têm `id`; derruba `coffee.core.cli.CLI` e `coffee.core.services.module.ModuleManager` (import falha com `AttributeError`) — **tipagem do decorator corrigida p/ `CoffeeComponent` (TASK-100); Pylance sinaliza `packageRegister(component)` como manifestação estática do mesmo defeito. DECISION (DEV, 2026-09-29): MANTER `packageRegister` no decorator** (`packageRegister` = registro dos módulos de `modules/` carregados no container; anotação `type` simples reservada para eventual migração futura). Defeito segue ABERTO e conhecido — corrige apenas com `register()` ou `id` em `CoffeeComponent` (reabrir quando o DEV quiser)
-- [ ] [S][REVIEW] OUT-OF-SCOPE FINDING: `tool.menu()` não existe; `tool.verify_modules()` é `async` chamada sem `await` em `main.py`
+- [ ] [S][REVIEW] OUT-OF-SCOPE FINDING: `@Component` em `ModuleManager` (e `RuntimeCLI`) — defeito histórico de `packageRegister`/`.id`. **Status 2026-10-01:** o código passou a importar OK — `c60908d` trocou `Component.py` para `registry.register(component)` e o registry (reescrito) não exige mais `.id`; `@Module` continua em `packageRegister` (sem `.id` também). ⚠️ **DRIFT:** a DECISION registrada (DEV, 2026-09-29) dizia **MANTER `packageRegister`** no decorator — o código diverge da decisão (`doc.md` §17.9). **Ação DEV:** confirmar se `register()` em `@Component` é o comportamento oficial (e atualizar a DECISION) ou reverter. Enquanto isso, defeito segue registrado
+- [ ] [S][REVIEW] OUT-OF-SCOPE FINDING: `main.py` — `Start()` tinha `tool.menu()` inexistente (**DEV substituiu por placeholder `print("coffe")` em 2026-10-01**); `tool.verify_modules()` é `async` e agora roda via `asyncio.create_task(...)` **sem aguardar o resultado** (substituiu a chamada direta sem `await`); arquivo em edição ativa pelo DEV
 - [ ] [S][REVIEW] OUT-OF-SCOPE FINDING: diretórios vazios sem código (`core/domain/models/`, `modules/ssh/Adpiter/`, `modules/ssh/models/`, `modules/ssh/Services/`) — decidir se viram pacotes ou são removidos
 
 ## Blocked
@@ -76,3 +76,5 @@
 - [x] [A] `__init__.py` criados em todos os pacotes com código (10 pacotes)
 - [x] [A] `CoffeeRegistry.py` indentação/TypeVar corrigidos
 - [x] [A] `platformdirs` declarado no pyproject; pacote instalado via `pip install -e .`
+- [x] [A] Saneamento de imports (2026-10-01) — 5 instâncias `import-cleaner` (core-kernel, runtime/container, modules, shared/entry, grafo global) + verificação final: 61/61 imports resolvem, 0 paths históricos em `src/`, 0 imports relativos, 0 ciclos (DAG), 0 violações core→modules, `compileall` exit 0, 14/14 módulos importam; 1 fix (`abstractmethod` removido de `core/components/CoffeeComponent.py`); relatório global do explorer gerado (`.agents/protocol/docs/codebase-explorer.json`, `b9b15a8`); docs sincronizadas (doc.md 0.3.2, runtime.md, components-aop.md, `.agents/specs/coffee-components-aop.md`)
+- [x] [A] `pip install -e .` no `.venv` (2026-10-01) — `coffee-cli 0.1.0` instalado; `import coffee` resolve de qualquer diretório; `platformdirs` 4.12.1 OK; script `coffee.exe` criado (entrypoint quebrado permanece — item [H]:14)

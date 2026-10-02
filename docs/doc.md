@@ -1,10 +1,10 @@
 # Coffee CLI — Documentação Técnica Principal
 
-**Versão:** 0.3.1
+**Versão:** 0.3.2
 **Status:** FACT (verificado por execução/análise de código) + INFERENCE (onde a evidência é indireta) + PROPOSAL (intenção documentada, não implementada) + UNKNOWN (contexto insuficiente)
-**Última atualização:** 2026-09-29
-**Base de evidência:** task context do `codebase-explorer` — `.agents/protocol/tasks/temp/docs-main-technical-context.md`, HEAD `cb2b812` — **atualizado por leitura direta em 2026-09-28** após (a) renomeação de typos no código e (b) evolução do Container/`Dependency` posteriores ao relatório do explorer; **atualizado em 2026-09-29** após refatoração de tipos `SystemModule` → `CoffeeComponent` no decorator `@Component` (§4.5, §16.11).
-> **CONFLICT registrado (2026-09-29):** a linha "base de evidência" desta doc citava `.agents/protocol/docs/codebase-explorer.json` (report global) — **arquivo inexistente** (FACT; o diretório `protocol/docs/` nunca foi criado). A citação foi corrigida; o único artefato do explorer é o task context acima, que está **STALE** (gerado em `cb2b812`, pré-rename e pré-refatoração).
+**Última atualização:** 2026-10-01
+**Base de evidência:** task context do `codebase-explorer` — `.agents/protocol/tasks/temp/docs-main-technical-context.md`, HEAD `cb2b812` — **atualizado por leitura direta em 2026-09-28** após (a) renomeação de typos no código e (b) evolução do Container/`Dependency` posteriores ao relatório do explorer; **atualizado em 2026-09-29** após refatoração de tipos `SystemModule` → `CoffeeComponent` no decorator `@Component` (§4.5, §16.11); **atualizado em 2026-10-01** após (c) geração do relatório global do explorer (`.agents/protocol/docs/codebase-explorer.json`, HEAD `b9b15a8`) e (d) task de saneamento de imports (5 instâncias `import-cleaner` + verificação final: 61/61 imports resolvem, 0 paths antigos, 0 ciclos, 0 violações core→modules, 1 fix — `abstractmethod` removido de `CoffeeComponent.py`) e (e) **sincronização com as edições de código do DEV em 2026-10-01** (`Config.build()` reescrito — cria `configPath` se faltante e retorna `self`; `main.py` sem `config_local`, lendo config via container; **boot verificado por execução: exit 0** — §4.1/§4.2/§6.2).
+> **Resolvido (2026-10-01):** a linha "base de evidência" já citava o report global `.agents/protocol/docs/codebase-explorer.json` como **inexistente** (FACT em 2026-09-29) — o arquivo **foi criado** em 2026-10-01 (gerado pelo `codebase-explorer` em `b9b15a8`) e é agora a referência de frescor; o task context antigo permanece STALE e é mantido como histórico.
 
 > **Legenda de classificação** (usada em todo o documento):
 > `FACT` = suportado diretamente por código/execução · `INFERENCE` = inferência forte a partir de evidência · `PROPOSAL` = intenção documentada, não implementada · `UNKNOWN` = contexto insuficiente.
@@ -18,7 +18,7 @@
 
 O Coffee CLI é a interface de linha de comando do ecossistema Coffee — uma camada pessoal de produtividade, desenvolvimento, automação, contexto e integração com IA. É a camada humana e o orquestrador local: **não é um segundo servidor** — o OS funciona sem Coffee.
 
-**Estado real do código (FACT):** projeto em fase de skeleton. O núcleo de dados (`Config`), o contrato de domínio (`SystemModule`) e a fronteira de runtime (`CoffeeApplicationRuntime`) existem; o bootstrap **não completa** (ver §18), dois módulos **não importam** (ver §16.2), não há comandos CLI funcionais, não há testes e não há CI.
+**Estado real do código (FACT):** projeto em fase de skeleton. O núcleo de dados (`Config`), o contrato de domínio (`SystemModule`) e a fronteira de runtime (`CoffeeApplicationRuntime`) existem; o bootstrap **completa desde 2026-10-01** (execução direta `python src/coffee/main.py` → exit 0, após o DEV reescrever `Config.build()` — §6.2), não há comandos CLI funcionais, não há testes e não há CI. **Imports (atualização 2026-10-01):** todos os módulos do projeto importam (14/14 verificados; `compileall` exit 0) — os2 defeitos históricos de import (`CLI`/`ModuleManager` via `@Component`) foram resolvidos pelo commit `c60908d` (ver §16.2/§16.9).
 
 **Stack (FACT — `pyproject.toml`):** Python `>=3.11`, layout `src/`, setuptools, única dependência declarada `platformdirs`. Zero frameworks CLI (argparse puro).
 
@@ -61,13 +61,23 @@ Coffee Interface
 ```
 src/coffee/
 ├── main.py                            # bootstrap: decorator + asyncio.run + Start()
+├── config/
+│   └── Config.py                      # dataclass Config + build() que cria configPath e retorna self
+├── data/
+│   └── Host.py                        # dados de host (username, platform)
 ├── core/
 │   ├── __main__.py                    # VAZIO (0 bytes)
-│   ├── cli/
-│   │   └── CLI.py                     # RuntimeCLI (argparse) — NÃO IMPORTA (§16.2)
-│   ├── data/
-│   │   ├── Config.py                  # dataclass Config + build() que sempre lança
-│   │   └── Host.py                    # dados de host (username, platform)
+│   ├── components/
+│   │   ├── CoffeeComponent.py         # ABC base dos componentes
+│   │   ├── decorators/
+│   │   │   ├── Component.py           # decorator @Component → registry.register
+│   │   │   └── Module.py              # decorator @Module → registry.packageRegister
+│   │   └── metadata/                  # __init__ vazio
+│   ├── container/
+│   │   ├── CoffeeApplicationContainer.py  # composição + DI (dependencies/systemModules)
+│   │   ├── CoffeeRegistry.py          # ABC do registry (dataclass sobre ABC)
+│   │   ├── DefaultCoffeeRegistry.py   # registry funcional (herda CoffeeRegistry)
+│   │   └── registry.py                # singleton: registry = DefaultCoffeeRegistry()
 │   ├── domain/
 │   │   ├── exceptions/
 │   │   │   └── InvalidCoffeeApplicationException.py
@@ -76,24 +86,21 @@ src/coffee/
 │   │       └── Dependency.py          # registro de dependência (classe intermediária de DI)
 │   ├── runtime/
 │   │   ├── CoffeeApplicationRuntime.py    # lifecycle + decorator de entrada
-│   │   ├── components/
-│   │   │   ├── Component.py           # decorator @Component
-│   │   │   ├── ModulePackage.py       # decorator @Module
-│   │   │   └── base/                  # CoffeeComponent (ABC) + CoffeeRegistry (ABC stub)
-│   │   └── container/
-│   │       ├── CoffeeApplicationContainer.py   # composição + DI (systemModules/dependencies)
-│   │       └── DefaultCoffeeRegistry.py        # catálogo de componentes
+│   │   ├── CLI.py                     # RuntimeCLI (argparse) — importa OK (§16.2)
+│   │   └── lifecycle/                 # __init__ vazio
 │   └── services/
 │       ├── tool.py                    # utilitários (clear, verify_modules, add_path_modules)
-│       └── module/ModuleManager.py    # serviço de módulos — NÃO IMPORTA (§16.2)
+│       └── module/ModuleManager.py    # serviço de módulos — importa OK (§16.2)
 └── modules/
     ├── ssh/package.py                 # SSHModule (@Module) — sem consumidores
     ├── system/ , update/              # __init__ vazios
 ```
 
+> **Estrutura pós-`3d47da8` (2026-09-30, atualização 2026-10-01):** `Config`/`Host` saíram de `core/data/` para os pacotes de topo `config/` e `data/`; `components/` e `container/` saíram de `core/runtime/` para dentro direto de `core/`; `CLI.py` passou a viver em `core/runtime/`; os decorators estão em `components/decorators/`. Nota: `domain/models/` **não** tem `__init__.py` (resolve como namespace package — consistency-note da verificação de imports).
+
 Diretórios vazios sem código (FACT): `egine/` (nome UNDEFINED), `modules/ssh/{Adpiter,models,Services}/`.
 
-> **Nota sobre typos (atualização 2026-09-28):** os typos de pasta/arquivo (`contener`, `componets`, `CoffeAplication`, `exepiton`, `Services/`, `CofeeRegistry`, `Componet`, `Dependecy`) vêm do **skeleton original do DEV** (`1b938f2`) — **não** são criação da IA. Foram **corrigidos por instrução do DEV em 2026-09-28** (§16.10); o histórico de typos permanece documentado em §16. As docs históricas (`runtime.md`, ADRs, specs) ainda citam os caminhos antigos — ver §17.
+> **Nota sobre typos (atualização 2026-09-28):** os typos de pasta/arquivo (`contener`, `componets`, `CoffeAplication`, `exepiton`, `Services/`, `CofeeRegistry`, `Componet`, `Dependecy`) vêm do **skeleton original do DEV** (`1b938f2`) — **não** são criação da IA. Foram **corrigidos por instrução do DEV em 2026-09-28** (§16.10); o histórico de typos permanece documentado em §16. Os paths atuais desta doc foram **sincronizados com o código em 2026-10-01**; ainda citam caminhos antigos apenas os **registros históricos** (ADRs 006/007, tabelas de rename §16.10/§16.11, diagrama `CoffeeSDK.drawio`) — ver §17.
 
 ### 3.3 Grafo de dependências internas (FACT)
 
@@ -129,16 +136,16 @@ src/coffee/
 
 **Arquivo:** `src/coffee/main.py`
 
-- `config_local = Config()` criado no **escopo de módulo** (linha 9) — um `Config` paralelo ao que o runtime cria internamente.
-- `@CoffeeApplicationRuntime` decora `async def main(app)` (16-17): após o decorator, `main` deixa de ser função e vira **instância** de `CoffeeApplicationRuntime` (verificado por execução).
-- `Start()` (12-13) chama `tool.menu()` — **não existe** (`hasattr(tool, 'menu') == False`, FACT).
-- `if __name__ == "__main__"` (31-33): `asyncio.run(main())` → `Start()`.
+- **`config_local = Config()` foi removido pelo DEV em 2026-10-01** — a config agora vem do container (`contener = app.getContainer()` dentro de `main`); o import `Config` permanece em `main.py:1` (hoje **unused** — OUT-OF-SCOPE, não alterado).
+- `@CoffeeApplicationRuntime` decora `async def main(app)` (13-14): após o decorator, `main` deixa de ser função e vira **instância** de `CoffeeApplicationRuntime` (verificado por execução).
+- `Start()` (10-11) — **estado em 2026-10-01:** contém `print("coffe")` (placeholder que substituiu o `tool.menu()` inexistente — FACT histórico, `TODO:54`) e é **alcançável** — executa após `asyncio.run(main())`.
+- `if __name__ == "__main__"` (29-31): `asyncio.run(main())` → `Start()`.
 
-**Falha observada (FACT — verificado):** `asyncio.run(main())` → `init()` → `Config().build()` → `RuntimeError` antes do corpo de `main`; `Start()` é inalcançável. Defeitos adicionais: `tool.verify_modules()` é `async` chamado sem `await` (20); condição `if not (app or app.getContainer())` (22) nunca dispara. (O typo da mensagem `"StopAsycnInteration"` foi corrigido em 2026-09-28 — §16.10.)
+**Execução verificada (FACT — 2026-10-01):** `python src/coffee/main.py` → boot **completa com exit 0** e imprime `coffe` — depois que o DEV reescreveu `Config.build()` (§4.2). Defeitos que permanecem: `tool.verify_modules()` é `async` e é agendado com `asyncio.create_task(...)` (18) **sem aguardar o resultado** (só executa se `Debug=True`; `Debug` default é `False`); condição `if not (app or app.getContainer())` (20) nunca dispara. (O typo da mensagem `"StopAsycnInteration"` foi corrigido em 2026-09-28 — §16.10.)
 
-### 4.2 `core.data` — Config e Host (FACT)
+### 4.2 `config` e `data` — Config e Host (FACT)
 
-**Arquivo:** `src/coffee/core/data/Config.py`
+**Arquivo:** `src/coffee/config/Config.py` (movido de `core/data/Config.py` no restructure `3d47da8`; `Host.py` vive em `src/coffee/data/Host.py`)
 
 ```python
 @dataclass
@@ -149,15 +156,18 @@ class Config:
     modules_local: list[str] | None = None
 
     def build(self) -> Config:
-        if not (self.configPath.exists() and os.path.isdir(...)): raise RuntimeError()
-        if not self.hostData.platform == None:   # condição invertida
-            raise RuntimeError()
+        if not (self.configPath.exists()):
+            os.makedirs(self.configPath, exist_ok=True)
+        if not os.path.isdir(self.configPath.absolute()):
+            raise RuntimeError("The configuration path is not a directory.")
+        if not self.hostData.platform == None:   # condição invertida (hoje inócua)
+            self.getHost()                       # recria hostData = Host()
         return self
 ```
 
 - `configPath` resolve via platformdirs — no Windows observado: `C:\Users\Quitto\AppData\Local\Coffee`; o harness §35 documenta `~/.config/Coffee/` (diferença Unix/platformdirs).
-- **`build()` sempre lança (FACT — verificado):** `Host.platform = system()` nunca é `None`, então a linha 21-22 dispara sempre e `return self` (24) é inalcançável. **A condição invertida já existe no skeleton do DEV** (`1b938f2`) — autoria do bug: UNKNOWN/provável DEV; o agente corrigiu outros pontos (`os.path.isdir`, `return self`, imports) e **manteve** a condição.
-- `RuntimeError()` é lançado **sem mensagem**.
+- **`build()` não lança mais incondicionalmente (FACT — DEV, 2026-10-01):** a versão anterior levantava `RuntimeError` sempre (`Host.platform = system()` nunca é `None` → branch disparava sempre; histórico em §16.6). O DEV reescreveu o método: cria `configPath` com `os.makedirs(..., exist_ok=True)` se faltante, só lança se o path existir **e não for diretório** (`RuntimeError` com mensagem `"The configuration path is not a directory."`), e o branch da condição invertida agora chama `self.getHost()` (reset de `hostData`) em vez de `raise`. **Verificado por execução 2026-10-01:** boot exit 0.
+- **Resíduo (OUT-OF-SCOPE, não alterado):** a condição invertida `if not self.hostData.platform == None` continua no código; com `hostData` já instanciado no `__init__`, o branch **sempre recria** o `Host()` — `getHost()` não agrega nada além de resetar. `from time import sleep` (`Config.py:3`) está **unused**.
 
 ### 4.3 `CoffeeApplicationRuntime` — fronteira de lifecycle (FACT + INFERENCE sobre autoria)
 
@@ -165,8 +175,8 @@ class Config:
 
 **O que é (FACT):** classe que combina duas coisas:
 
-1. **Estado estático de aplicação** — `_container` (atributo de classe), `init()` (16-25) cria `Config().build()` + `CoffeeApplicationContainer`; `getContainer()` (27-32) retorna o container ou lança `RuntimeError`; `setConfig()` (34-36); `stop()` (38-41) zera `_container` e retorna `True`.
-2. **Decorator de lifecycle** — `__init__(func)` (13-14), `__call__` (43-74), `_invokeAsync` (76-84).
+1. **Estado estático de aplicação** — `_container` (atributo de classe), `init()` (21-30) cria `Config().build()` + `CoffeeApplicationContainer`; `getContainer()` (33-37) retorna o container ou lança `RuntimeError`; `setConfig()` (40-41); `stop()` (44-46) zera `_container` e retorna `True`.
+2. **Decorator de lifecycle** — `__init__(func)` (17-18), `__call__` (48-79), `_invokeAsync` (81-89).
 
 **Comportamento do decorator (FACT — verificado por execução):**
 
@@ -175,21 +185,21 @@ class Config:
 async def main(app: CoffeeApplicationRuntime): ...
 ```
 
-- Aceita as duas formas (factory em 55-60); args/kwargs na chamada → `TypeError`.
-- Sync: `init()` → `func(self)` → `finally stop()`.
-- Async: retorna coroutine → `init()` → `await func(self)` → `finally stop()`.
+- Aceita as duas formas (factory em 60-65); args/kwargs na chamada → `TypeError` (67-70).
+- Sync: `init()` (75) → `func(self)` → `finally stop()`.
+- Async: retorna coroutine → `init()` (82) → `await func(self)` → `finally stop()`.
 - Injeta `self` (a instância runtime) como argumento do ponto de entrada.
 
 **Limitações verificadas (FACT):**
 
-- `init()` está **fora** do `try` nas duas rotas (70-74 e 77-84): se `init()` falhar (como falha hoje — §4.2), `stop()` **não roda** — a garantia de `try/finally` documentada em `runtime.md:307` não se sustenta.
-- **Hoje o corpo do ponto de entrada nunca executa** porque `init()` lança.
+- `init()` está **fora** do `try` nas duas rotas (75 e 82): se `init()` falhar, `stop()` **não roda** — a garantia de `try/finally` documentada em `runtime.md:307` não se sustenta. *(Desde 2026-10-01 `init()` não lança mais — `Config.build()` foi reescrito (§4.2) e o boot completo foi verificado por execução; a assimetria estrutural permanece.)*
+- **Atenção:** `main()` é coroutine mas `__call__` é síncrono e retorna a coroutine `_invokeAsync(...)` — o `await` real acontece dentro de `_invokeAsync`, que é agendado por `asyncio.run(main())` no `__main__`.
 
 **Marcas de autoria (INFERENCE · confiança MEDIUM-HIGH — agente, commit `dad3b2d`, lote 2026-09-25 22:27):**
 
-- Docstring cita **`runtime.md §12.3`** (linha 46) — `runtime.md` **não tem §12.3** → referência documental que não existe, usada para justificar código.
-- Mistura de idiomas: docstring em PT, mensagens de `TypeError` em EN (60, 63-65).
-- Comentário de fase em voz de agente: `# ... ainda estamos na fase de factory.` (56).
+- Docstring cita **`runtime.md §12.3`** (linha 53-54) — `runtime.md` **não tem §12.3** → referência documental que não existe, usada para justificar código.
+- Mistura de idiomas: docstring em PT, mensagens de `TypeError` em EN (68, 69-70).
+- Comentário de fase em voz de agente: `# ... ainda estamos na fase de factory.` (62).
 
 **Conflitos registrados:**
 
@@ -212,10 +222,10 @@ class CoffeeApplicationContainer:
         self.dependencies: list[Dependency] = []      # registros de DI (12)
         self.systemModules: list[SystemModule] = []   # módulos externos (13)
 
-    def _create(self, dependency: type) -> None: ...  # 15-36 — reflete e descreve
-    def get(self, component: type): ...               # 38-44 — resolve via registry
-    def getConfig(self) -> Config: ...                # 46-47
-    def setConfig(self, config: Config) -> None: ...  # 49-50
+    def _create(self, dependency: type) -> None: ...  # 15-37 — reflete e descreve
+    def get(self, component: type): ...               # 39-45 — resolve via registry
+    def getConfig(self) -> Config: ...                # 47-48
+    def setConfig(self, config: Config) -> None: ...  # 50-51
 ```
 
 #### 4.4.2 Controle dos módulos externos (`SystemModule`)
@@ -254,9 +264,9 @@ get(component) → registry.get(cls) → cls()   hoje: instancia sem injetar
 
 **Análise do estado atual (FACT):**
 
-1. **Describe parcialmente implementado:** `_create` (15-36) reflete a assinatura, cria `Dependency` e deduplica por igualdade de dataclass (35-36). **Nunca é chamado por ninguém** (grep) — nenhum fluxo invoca `_create` hoje.
-2. **Resolve ausente:** `get()` (38-44) resolve o `implementation` no registry e chama `implementation()` **sem injetar nada** — os `dependencies` declarados não são consumidos. Componentes com `__init__` exigindo argumentos (ex.: `RuntimeCLI(moduleManager, config)`) continuam falhando.
-3. **Debug em produção:** `print` dos parâmetros em `_create` (25-29) — código de biblioteca não deveria escrever em stdout (devia ser logging ou sair antes da entrega).
+1. **Describe parcialmente implementado:** `_create` (15-37) reflete a assinatura, cria `Dependency` e deduplica por igualdade de dataclass (36-37); o `print` de debug só roda com `config.Debug = True` (25-30, gate adicionado em `eefb71a`). **Nunca é chamado por ninguém** (grep) — nenhum fluxo invoca `_create` hoje.
+2. **Resolve ausente:** `get()` (39-45) resolve o `implementation` no registry e chama `implementation()` **sem injetar nada** — os `dependencies` declarados não são consumidos. Componentes com `__init__` exigindo argumentos (ex.: `RuntimeCLI(moduleManager, config)`) continuam falhando.
+3. **Debug condicional:** o `print` dos parâmetros em `_create` (25-30) está atrás de `self.config.Debug` — em produção (`Debug=False`) não escreve em stdout, mas continua sendo print de biblioteca, não logging.
 4. **Anomalia no `id` (FACT):** `id: UUID = uuid4()` é avaliado **uma única vez** na criação da classe — toda `Dependency` criada sem `id` explícito recebe o **mesmo UUID** (o default não é `default_factory`). Isso quebra a unicidade que o campo sugere e afeta o dedupe por igualdade.
 5. **Edge case:** parâmetros sem anotação produzem `classImpl = inspect.Parameter.empty` (não `None`), divergindo do contrato `type | None`.
 6. `get()`/`_create()` **não têm chamadores** fora da própria classe (FACT, grep).
@@ -265,38 +275,39 @@ get(component) → registry.get(cls) → cls()   hoje: instancia sem injetar
 
 #### 4.4.4 `DefaultCoffeeRegistry` (`container/DefaultCoffeeRegistry.py`)
 
-- Dois dicts de classe: `components: dict[type, type]` (registro de classes) e `moduleRegistry: dict[str, SystemModule]` (renomeado de `moduleRegestry`; **sem nenhum leitor externo**).
-- API `@classmethod`: `register`, `packageRegister` (acessa `module.id`), `contains`, `get`, `getModule`, `all`.
+- **Estado atual (2026-10-01, pós-`c60908d`/`3d47da8`):** listas de classe — `dependencies: list[Dependency]` (registro de componentes como `Dependency(id=uuid4(), name, classImpl)`) e `systemModules: list[type[SystemModule]]` (módulos de `modules/`). Os dicts anteriores (`components`, `moduleRegistry`) **não existem mais**.
+- API `@classmethod`: `register(component)` (append em `dependencies` — **não exige `.id`**), `packageRegister(module)` (append em `systemModules` — **não exige `.id`**; a antiga semântica `moduleRegistry[module.id]` foi removida), `contains`, `get`, `getModule`, `all`.
 
-**Registry duplicado (FACT):** existem **duas classes homônimas `CoffeeRegistry`**: a funcional `DefaultCoffeeRegistry` (em `container/DefaultCoffeeRegistry.py`) e o stub ABC `CoffeeRegistry` (em `components/base/CoffeeRegistry.py`, com `@dataclass` sobre ABC, `TypeVar` como atributo, `abstractmethod` sem uso) — questão aberta em `components-aop.md:107,116`.
+**Registry base × funcional (FACT):** a relação deixou de ser "duas classes homônimas": hoje existe a ABC `CoffeeRegistry` (em `container/CoffeeRegistry.py`, `@dataclass` sobre `ABC`) e `DefaultCoffeeRegistry(CoffeeRegistry)` (em `container/DefaultCoffeeRegistry.py`) — **herança, não duplicação**. O singleton `registry = DefaultCoffeeRegistry()` vive em `container/registry.py` (referência histórica do conflito em `components-aop.md:107,116`).
 
 ### 4.5 `components` — decorators de componentes e módulos (FACT)
 
-**`Component.py`** (renomeado de `Componet.py`; classe `Component`):
+**`decorators/Component.py`** (renomeado de `Componet.py`, depois movido para `decorators/`; classe `Component`):
 
 ```python
-registry = DefaultCoffeeRegistry()
+from coffee.core.container.registry import registry          # singleton de container/registry.py
 
-def Component(component: CoffeeComponent) -> CoffeeComponent:   # refatorado em 2026-09-29 (§16.11)
-    registry.packageRegister(component)   # exige .id
+def Component(component: type[T]) -> type[T]:                 # T bound=CoffeeComponent (§16.11)
+    registry.register(component)                              # estado atual (desde c60908d)
     return component
 ```
 
-- **`Component` chama `packageRegister`, que faz `moduleRegistry[module.id]`** — classes decoradas **sem atributo `id`** explícito lançam `AttributeError` no momento do import.
-- Anomalias: `registry = DefaultCoffeeRegistry()` instanciado apesar de todos os métodos serem `@classmethod`; assinatura `Component(component: CoffeeComponent) -> CoffeeComponent` usada como decorator de classe (recebe **classes**, não instâncias).
-- **MISMATCH estático intencional (FACT, 2026-09-29):** `packageRegister` continua com `bound=SystemModule` (registry é orientado a **módulos** — `moduleRegistry`/`.id` são conceito de `SystemModule`), então Pylance sinaliza a chamada `packageRegister(component)` em `Component.py`. **DECISION (DEV, 2026-09-29): manter `packageRegister` no decorator** — `packageRegister` representa os módulos de `modules/` carregados no container; a anotação `type` simples fica reservada para eventual migração do decorator. O mismatch é a manifestação estática do defeito de runtime (§16.2), que permanece aberto (`TODO:53`).
+- **Estado atual (2026-10-01):** `Component` chama **`register`** (desde o commit `c60908d`) → append de `Dependency` em `registry.dependencies` — **não exige `.id`**; classes decoradas importam sem `AttributeError` (CLI e ModuleManager importam OK — verificado 14/14).
+- **`Module`** (`decorators/Module.py`) chama **`packageRegister(module=module)`** → append em `registry.systemModules` — também **não exige `.id`** (a exigência `moduleRegistry[module.id]` da versão antiga foi removida na reescrita do registry).
+- Anomalias: o singleton `registry` é importado de `container/registry.py` apesar de todos os métodos serem `@classmethod`; assinatura `Component(component: type[T]) -> type[T]` usada como decorator de classe (recebe **classes**, não instâncias).
+- **CONFLICT decisão × código (FACT, registrado em §17.9):** a **DECISION (DEV, 2026-09-29)** registrava **manter `packageRegister`** no decorator `@Component` (`packageRegister` = módulos de `modules/` no container; anotação `type` reservada para migração futura). Porém o commit **`c60908d` (2026-09-29)** trocou a chamada para **`register`** — o código atual **diverge** da decisão registrada. Aguarda confirmação do DEV (`TODO:53`).
 
-**`ModulePackage.py`**: `Module(module)` → `registry.register(module)` → `components[cls]` — este caminho não exige `.id` e funciona.
+**`decorators/Module.py`**: `Module(module)` → `registry.packageRegister(module=module)` → `systemModules` — caminho dos módulos de `modules/` (ex.: `SSHModule`).
 
-**Regressão do `@Component` (FACT comportamento + INFERENCE HIGH autoria agente):** `6cf711c` criou `Componet.py` já com `packageRegister`, substituindo o `register()` funcional do skeleton. Consequência verificada: importar `coffee.core.services.module.ModuleManager` ou `coffee.core.cli.CLI` → `AttributeError: type object 'ModuleManager' has no attribute 'id'`. (Arquivo renomeado para `Component.py` em 2026-09-28 — o defect é de **semântica**, não de nome.)
+**Regressão do `@Component` (FACT comportamento + INFERENCE HIGH autoria agente — HISTÓRICO):** `6cf711c` criou `Componet.py` já com `packageRegister`, substituindo o `register()` funcional do skeleton. Consequência verificada **em 2026-09-28:** importar `coffee.core.services.module.ModuleManager` ou `coffee.core.runtime.CLI` → `AttributeError: type object 'ModuleManager' has no attribute 'id'`. **Status 2026-10-01: RESOLVIDO** — `c60908d` trocou a chamada para `register` e a reescrita do registry eliminou a exigência de `.id`; ambos os módulos importam OK (ver §16.2).
 
-### 4.6 `core.cli.CLI` — parser argparse (FACT)
+### 4.6 `core.runtime.CLI` — parser argparse (FACT)
 
-**Arquivo:** `src/coffee/core/cli/CLI.py`
+**Arquivo:** `src/coffee/core/runtime/CLI.py` (movido de `core/cli/CLI.py` no restructure `3d47da8`)
 
-- `@Component class RuntimeCLI` (7-8) com `__init__(moduleManager, config)` e `buildParser()` que cria `ArgumentParser(prog="coffee")`.
-- `_addSubparsers()` (21-23) = `for ...: pass` — vazio; `buildParser` **não tem chamador**.
-- **Não importa hoje** (herda a falha do `@Component` via `ModuleManager`).
+- `@Component class RuntimeCLI` com `__init__(moduleManager, config)` e `buildParser()` que cria `ArgumentParser(prog="coffee")`.
+- `_addSubparsers()` = `for ...: pass` — vazio; `buildParser` **não tem chamador**.
+- **Importa OK (2026-10-01)** — até 2026-09-30 falhava via `@Component`/`AttributeError` (§16.2).
 - **CONFLICT:** `doc.md` (versão anterior):174 e `runtime.md:467` diziam que `CLI.py` usa `@CoffeeApplicationRuntime` → hoje usa `@Component`.
 - Autoria (INFERENCE MEDIUM): `6cf711c` acrescentou `RuntimeCLI`/`__init__`/`_addSubparsers`; `b0c4c49` removeu uma herança inválida e arrumou imports. `@Component` é do skeleton.
 
@@ -304,7 +315,7 @@ def Component(component: CoffeeComponent) -> CoffeeComponent:   # refatorado em 
 
 **`ModuleManager`** (`services/module/ModuleManager.py`): `@dataclass @Component class ModuleManager` com `_modulesRegistry` e `loadModules()`.
 
-- `@Component` é do **skeleton**; a **quebra** é do agente (mudança de semântica do registry em `6cf711c`) → import falha (§4.5).
+- `@Component` é do **skeleton**; a **quebra** foi do agente (mudança de semântica do registry em `6cf711c`) — **status 2026-10-01: importa OK** (`c60908d` resolveu; ver §4.5/§16.2).
 - **CONFLICT:** `doc.md`:86,166,373, `runtime.md:468`, `STATE.md:91` e ADR 001:37 dizem que tem `@CoffeeApplicationRuntime` (violação de lifecycle) → hoje tem `@Component`. ADR 007 (DECIDED) prevê constructor injection via composition root — não implementado.
 
 **`tool`** (`services/tool.py`): dataclass com `@staticmethod`s:
@@ -321,11 +332,11 @@ def Component(component: CoffeeComponent) -> CoffeeComponent:   # refatorado em 
 - **`SystemModule`** (`domain/interface/SystemModule.py`): ABC com `id/name/version` (properties), herda `CoffeeComponent`. É o contrato dos módulos do sistema.
 - **`InvalidCoffeeApplicationException`** (`domain/exceptions/`): usada em `main.py:23`.
 - **`Dependency`** (`domain/models/Dependency.py`): classe intermediária de DI do Container (§4.4.3).
-- **`domain/models/`**: `Module.py` foi deletado em `6cf711c`; hoje contém apenas `Dependency.py`. O `SSHModule` **não** subclasseia `SystemModule` (ver §4.9).
+- **`domain/models/`**: `Module.py` foi deletado em `6cf711c`; hoje contém apenas `Dependency.py` (sem `__init__.py` — namespace package). ~~O `SSHModule` **não** subclasseia `SystemModule`~~ — **corrigido:** desde o restructure `3d47da8` `SSHModule` **subclasseia `SystemModule`** (ver §4.9).
 
 ### 4.9 `modules` — features (FACT)
 
-- `modules/ssh/package.py`: `@Module class SSHModule` (dataclass com atributos de classe) — registrado em `components`, **sem consumidor** e fora do contrato `SystemModule`.
+- `modules/ssh/package.py`: `@Module class SSHModule(SystemModule)` — **subclasseia o contrato `SystemModule`** com `id/name/version` (status 2026-10-01; até o restructure era um dataclass "fora do contrato") — registrado em `registry.systemModules` via `packageRegister`, **sem consumidor**.
 - `modules/system/`, `modules/update/`: `__init__` vazios.
 
 ---
@@ -361,31 +372,37 @@ coffee (shell)
     (não existe src/coffee/cli/)
 ```
 
-### 6.2 Fluxo de execução direta (FACT — verificado)
+**Status 2026-10-01:** o pacote está instalado em modo editable no `.venv` do projeto (`pip install -e .` → `coffee-cli 0.1.0`), então `import coffee` **resolve** a partir de qualquer diretório; porém o script gerado `coffee.exe` ainda falha com `ModuleNotFoundError: No module named 'coffee.cli.main'` — o entrypoint quebrado permanece decisão do DEV (`TODO:14`). Enquanto isso, `python src/coffee/main.py` executa e **completa com exit 0** (boot funcional desde a reescrita de `Config.build()` — §6.2).
+
+### 6.2 Fluxo de execução direta (FACT — verificado em 2026-10-01)
 
 ```
 import coffee.main
-  → config_local = Config()                      (main.py:9)
-  → @CoffeeApplicationRuntime vira instância      (main.py:16)
-python main.py / __main__
-  → asyncio.run(main())                          (main.py:32)
-  → CoffeeApplicationRuntime.__call__ (43)
-  → _invokeAsync (76)
-  → init() (16) → Config().build() (21) → RuntimeError('')   ← FALHA AQUI
-     (Container nunca criado; try/finally não alcançado;
-      _invokeAsync: init() fora do try em 77 → stop() não roda)
-  → Start() → tool.menu()                        ← inalcançável; menu não existe
+  → @CoffeeApplicationRuntime vira instância      (main.py:13)
+python src/coffee/main.py (__main__)
+  → asyncio.run(main())                          (main.py:30)
+  → CoffeeApplicationRuntime.__call__             → _invokeAsync (coroutine)
+  → _invokeAsync → init() → Config().build() OK  (cria configPath se faltante)
+     → registry → Container(config)               (main.py:16)
+  → corpo de main: contener.config.Debug = False  → create_task NÃO agendado
+  → finally → stop() → _container = None
+  → Start() → print("coffe")                     (main.py:31)   ← executado
+exit 0
 ```
 
-### 6.3 Fluxo de registro de componentes (se os imports funcionassem) — FACT
+> Nota (FACT — verificado por execução em 2026-10-01): o fluxo acima é o caminho **de sucesso** após o DEV reescrever `Config.build()` (§4.2). Antes disso, o boot falhava em `init()` (`RuntimeError` sem mensagem) e `Start()` era inalcançável — registro histórico em §16.6. `main.py` e `CoffeeApplicationRuntime.py` estavam **ativos em edição pelo DEV** em 2026-10-01 — refs de linha aproximadas.
+
+### 6.3 Fluxo de registro de componentes (verificado) — FACT
 
 ```
 import decorado
-  → @Component → packageRegister → moduleRegistry[id]   (quebra p/ classes sem .id)
-  → @Module    → register        → components[cls]
+  → @Component → register       → dependencies.append(Dependency)   (sem exigência de .id)
+  → @Module    → packageRegister → systemModules.append(module)     (sem exigência de .id)
 Runtime.init() → Container(config)
 Container.get(T) → registry.get(T) → T()          (sem DI)
 ```
+
+> **Alteração (2026-10-01):** os papéis `@Component`/`@Module` estavam **invertidos** na versão anterior desta doc (atribuía-se `packageRegister` a `@Component`); o texto acima reflete o código atual (`c60908d`/`3d47da8`). O **DECISION drift** (`packageRegister` decidido × `register` no código) está registrado em §4.5/§17.9.
 
 ### 6.4 Lifecycle alvo documentado (PROPOSAL)
 
@@ -429,7 +446,7 @@ REST (geral) · MCP (agentes IA) · WebSocket/events (realtime) · capability la
 
 ## 9. Error Handling
 
-**Exceções atuais (FACT):** `InvalidCoffeeApplicationException` (uso apenas em `main.py`); `RuntimeError` sem mensagem em `Config.build()`; `RuntimeError` em `Runtime.getContainer()`; `LookupError` em `Container.get()`; `NotImplementedError` em `Container._create`; `TypeError` no decorator.
+**Exceções atuais (FACT):** `InvalidCoffeeApplicationException` (uso apenas em `main.py`); `RuntimeError` com mensagem em `Config.build()` (só se `configPath` existir e não for diretório); `RuntimeError` em `Runtime.getContainer()` e em `Container._create` (`"Dependency cannot be None"`); `LookupError` em `Container.get()`; `TypeError` no decorator.
 
 **Estratégia alvo (PROPOSAL):** domain exceptions para regras de negócio; infra exceptions isoladas em adapters; exit codes padronizados; structured logging.
 
@@ -502,13 +519,15 @@ REST (geral) · MCP (agentes IA) · WebSocket/events (realtime) · capability la
 
 - **Comportamento observável (FACT):** transforma a função decorada numa instância de `CoffeeApplicationRuntime`; aceita `@X` e `@X()`; executa `init → entry → stop (finally)`; injeta `self` no ponto de entrada; sync e async.
 - **Marcas de geração por agente:** docstring cita `runtime.md §12.3` (46) — **seção inexistente**; PT na docstring × EN nos `TypeError`; comentário `# ... fase de factory` (56).
-- **Defeitos do trecho (FACT):** `init()` fora do `try` em ambas as rotas → `stop()` não roda se `init()` falhar; na prática atual, o ponto de entrada **nunca executa** porque `Config.build()` lança (§4.2).
+- **Defeitos do trecho (FACT):** `init()` fora do `try` em ambas as rotas → `stop()` não roda se `init()` falhar; *(histórico — até 2026-10-01, o ponto de entrada **nunca executava** porque `Config.build()` lançava; desde a reescrita do DEV o boot completa e `stop()` roda no `finally` — §4.1/§4.2; a assimetria estrutural permanece.)*
 - **Por que fugiu do escopo (INFERENCE):** a doc (`runtime.md:410`, `doc.md` anterior) dizia "decorator não implementado" e `STATE.md` lista "Implementar `__call__`" como tarefa de agente — o agente implementou sem o fluxo de decisão do DEV, gerando código conflitante com a própria doc.
 - **Callers:** apenas `main.py:4,16,17`. Referências em docs: `runtime.md` §3/§5.4/§7/§8, ADR 001, `specs/coffee-cli-v1.md:214,541,551`, `diagrams/architecture.mmd:69-74`.
 
 ### 16.2 `Componet.py` — regressão do `@Component` (quebra 2 imports)
 
-> Renomeado em 2026-09-28 para **`components/Component.py`** (registro agora em `container/DefaultCoffeeRegistry.py`).
+> Renomeado em 2026-09-28 para **`components/Component.py`** (registro agora em `container/DefaultCoffeeRegistry.py`); posteriormente movido para **`components/decorators/Component.py`** (restructure `3d47da8`).
+>
+> **STATUS 2026-10-01 — RESOLVIDO:** o commit `c60908d` trocou `packageRegister` → `register` no decorator e a reescrita do registry removeu a exigência de `.id`. Verificação: `compileall` exit 0; **14/14 módulos importam** (CLI e ModuleManager incluídos); 5 instâncias `import-cleaner` + verificação final = **PASS**. O conteúdo abaixo é **histórico** (estado até 2026-09-30). O **drift decisão × código** (`packageRegister` decidido × `register` em uso) permanece aberto — §17.9, `TODO:53`.
 
 | Campo | Valor |
 |---|---|
@@ -530,21 +549,22 @@ REST (geral) · MCP (agentes IA) · WebSocket/events (realtime) · capability la
 
 - **Versão original (agente):** `dependencie` nunca lido; `_create` imprimia params e lançava `NotImplementedError`; typos `dependencie/dependecy`. Divergia de `runtime.md:404` ("container guarda apenas Config").
 - **Versão atual (2026-09-28):** o DEV reescreveu o arquivo para `dependencies: list[Dependency]` + `systemModules: list[SystemModule]` + `_create` que reflete `__init__` e popula `dependencies` — **análise completa em §4.4** (design de DI via classe intermediária `Dependency`).
-- **Anomalias que permanecem:** `print` de debug em `_create`; `_create` sem chamadores; `get()` sem resolution/injeção; `id: UUID = uuid4()` não-único (§4.4.3).
+- **Anomalias que permanecem:** `print` de debug em `_create` (agora atrás de `config.Debug` — `eefb71a`); `_create` sem chamadores; `get()` sem resolution/injeção; `id: UUID = uuid4()` não-único (§4.4.3).
 - **Imports junk removidos em 2026-09-28** (autorados por autocomplete, fora de escopo do rename mas claramente acidentais): `from ast import List`, `from pickletools import uint4`, `from tkinter import NO`, `from uuid import UUID` — todos unused; `tkinter` em core era risco de import.
 
 ### 16.4 `main.py` — estrutura DEV remendada por agente
 
 - **Class:** estrutura DEV (`1b938f2`) + remendos do agente (`b0c4c49`: `data`→`Config`, re-root de imports) · INFERENCE MEDIUM-HIGH p/ remendos, FACT p/ estado atual.
-- Defeitos verificados: `Start()` inalcançável → `tool.menu()` inexistente; `verify_modules()` sem `await`; condição `if not (app or ...)` nunca dispara. (Typo `"StopAsycnInteration"` corrigido em 2026-09-28 — §16.10.) Registro: `TODO:14,54`.
+- Defeitos: `verify_modules()` agendado sem aguardar; condição `if not (app or ...)` nunca dispara. *(Histórico: `Start()` era inalcançável e pedia `tool.menu()` inexistente — substituído por placeholder `print("coffe")` e alcançável desde a reescrita de `Config.build()` em 2026-10-01 — §4.1.)* (Typo `"StopAsycnInteration"` corrigido em 2026-09-28 — §16.10.) Registro: `TODO:14,54`.
 
 ### 16.5 `CLI.py` e `ModuleManager.py`
 
-- `6cf711c` acrescentou `class RuntimeCLI(Component)` com herança inválida (removida em `b0c4c49`), `__init__`, `_addSubparsers` (loop `pass`). Hoje: imports falham; `buildParser` sem chamador. CONFLICTs documentais listados em §4.6/§4.7.
+- `6cf711c` acrescentou `class RuntimeCLI(Component)` com herança inválida (removida em `b0c4c49`), `__init__`, `_addSubparsers` (loop `pass`). **Status 2026-10-01:** imports **OK** (resolvido em `c60908d`); `buildParser` segue sem chamador. CONFLICTs documentais listados em §4.6/§4.7.
 
-### 16.6 `Config.build()` — bug preservado
+### 16.6 `Config.build()` — bug corrigido pelo DEV
 
-- **AUTHORIA: UNKNOWN (provável DEV)** — a condição invertida `if not self.hostData.platform == None` já está no skeleton `1b938f2`. O agente corrigiu `os.path.isdir()`, re-rootou imports e adicionou `return self`/`modules_local`, **mantendo** a condição (FACT). Efeito: nenhum boot completa.
+- **AUTHORIA: UNKNOWN (provável DEV)** — a condição invertida `if not self.hostData.platform == None` já está no skeleton `1b938f2`. O agente corrigiu `os.path.isdir()`, re-rootou imports e adicionou `return self`/`modules_local`, **mantendo** a condição (FACT). Efeito antigo: nenhum boot completava (`RuntimeError` sempre).
+- **Status 2026-10-01 (FACT — DEV, worktree):** o DEV **reescreveu** `build()` — `os.makedirs(configPath, exist_ok=True)` se faltante, `RuntimeError` com mensagem só se o path não for diretório, e o branch da condição invertida agora chama `self.getHost()` em vez de `raise`. Boot verificado: exit 0 (§6.2). **Resíduo não corrigido (OUT-OF-SCOPE):** condição invertida permanece (sempre recria o `Host()`) e `from time import sleep` está unused.
 
 ### 16.7 `tool.py`
 
@@ -552,14 +572,14 @@ REST (geral) · MCP (agentes IA) · WebSocket/events (realtime) · capability la
 
 ### 16.8 `__init__.py` ×10 e `.agents/state.json`
 
-- **FACT — agente** (TODO TASK-001). `__init__.py` criados também em pacotes sem código. `state.json` (untracked) tem **encoding quebrado (mojibake)** e afirma `PASS - 33/33 módulos importam` → **CONFLICT** com o `AttributeError` verificado (§16.2).
+- **FACT — agente** (TODO TASK-001). `__init__.py` criados também em pacotes sem código. `state.json` (untracked) teve **encoding quebrado (mojibake)** e afirmava `PASS - 33/33 módulos importam` → **CONFLICT** com o `AttributeError` verificado à época (§16.2) — **resolvido**: reescrito em 2026-10-01 com encoding correto, refletindo o estado pós-import-cleanup.
 
 ### 16.9 Verificação dos erros estruturais citados em `AGENTS.md`
 
 | Afirmação em AGENTS.md | Estado hoje | Class · Confiança |
 |---|---|---|
 | Entrypoint quebrado | **AINDA EXISTE** — `pyproject.toml:20` → `coffee.cli.main:main` inexistente | FACT · HIGH |
-| Imports quebrados | **PARCIALMENTE CORRIGIDOS** — re-root `core.*`→`coffee.core.*` feito; hoje a falha é `AttributeError` em 2 módulos | FACT · HIGH (verificado) |
+| Imports quebrados | **RESOLVIDOS (2026-10-01)** — re-root `core.*`→`coffee.core.*` + fix do `@Component` (`c60908d`); verificação: 14/14 módulos importam, 0 paths antigos, 0 ciclos, 0 core→modules | FACT · HIGH (verificado) |
 | "Arquivo de runtime sem extensão" | **NÃO ENCONTRADO** — nem em disco nem em todo o histórico git; `core/__main__.py` existe e está vazio (0 bytes) | UNKNOWN · questão ao DEV |
 | — | `egine/` (pasta vazia, nome UNDEFINED) | FACT |
 
@@ -606,7 +626,7 @@ Instrução do DEV: *"ajuste os typos do code interno"*. Renomeação em cascata
 
 **Validação (FACT):** `compileall -f` → exit 0 · import por módulo → **33/35 OK**, falhando apenas `CLI` e `ModuleManager` (bug `@Component` pré-existente, §16.2 — **sem regressão**) · grep residual: nenhuma referência a `SystemModule` fora dos usos legítimos.
 
-**Efeito colateral registrado:** Pylance sinaliza `packageRegister(component)` (bound `SystemModule` × argumento `CoffeeComponent`) — **DECISION (DEV, 2026-09-29): manter** (`packageRegister` = módulos de `modules/` no container); eliminá-lo exige decisão futura (migrar p/ `register()` com anotação `type`, ou declarar `id` em `CoffeeComponent`).
+**Efeito colateral registrado:** Pylance sinalizava `packageRegister(component)` (bound `SystemModule` × argumento `CoffeeComponent`) — **DECISION (DEV, 2026-09-29): manter** (`packageRegister` = módulos de `modules/` no container); eliminá-lo exige decisão futura (migrar p/ `register()` com anotação `type`, ou declarar `id` em `CoffeeComponent`). **Status 2026-10-01:** a migração para `register()` **aconteceu no código** (`c60908d`) sem registro de decisão correspondente → drift em §17.9.
 
 ---
 
@@ -620,8 +640,9 @@ A fonte de verdade sobre **estado** é o **código**; a fonte documental **canô
 4. Doc anterior `doc.md:90` → árvore com `core/domain/models/Module.py` (deletado) — árvore corrigida em §3.2.
 5. `doc.md:151` anterior, `runtime.md:404` → "container guarda apenas Config" × estado atual (`get/_create/dependencies/systemModules`) — resolvido em **§4.4** (doc.md atualizada).
 6. `.agents/state.json` → "33/33 módulos importam" × AttributeError verificado — **§16.8**.
-7. `components-aop.md:101-118` → conteúdo consistente com o código **na época**, mas cita caminhos antigos pré-rename (§16.10).
-8. **Pós-rename (2026-09-28):** `runtime.md`, `docs/decisions/006` e `007`, `specs/coffee-cli-v1.md` e `components-aop.md` ainda referenciam `contener/`, `componets/`, `Componet.py`, `CoffeAplicationRuntime.py`, `Dependecy.py`, `Services/` — caminhos **obsoletos**; doc.md (§3.2/§16.10) prevalece sobre eles.
+7. `components-aop.md:101-118` → conteúdo consistente com o código **na época**, mas citava caminhos antigos pré-rename — **paths atualizados em 2026-10-01** (§16.10); as linhas de status do texto seguem refletindo o estado pós-`c60908d`/`3d47da8`.
+8. **Pós-rename (2026-09-28):** `runtime.md`, `docs/decisions/006` e `007` e `components-aop.md` referenciavam `contener/`, `componets/`, `Componet.py`, `CoffeAplicationRuntime.py`, `Dependecy.py`, `Services/` — caminhos **obsoletos**. **Status 2026-10-01:** `runtime.md`, `components-aop.md` e `.agents/specs/coffee-components-aop.md` foram **sincronizados com os paths atuais**; permanecem com paths históricos apenas **ADRs 006/007** (registros de decisão — preservados por serem histórico) e o diagrama `CoffeeSDK.drawio`. Observação: a alegação de que `specs/coffee-cli-v1.md` citava paths antigos era **incorreta** (grep = 0 ocorrências).
+9. **DECISION × código (novo, 2026-10-01):** a **DECISION (DEV, 2026-09-29)** de **manter `packageRegister`** no decorator `@Component` diverge do código atual, que chama **`register`** desde `c60908d` (`decorators/Component.py:10`). `@Module` continua em `packageRegister`. Documentação registrada; correção requer decisão do DEV (`TODO:53`).
 
 **Resolução da questão anterior (DECISION · DEV · 2026-09-28):** *"qual doc prevalece?"* → **`doc.md` é mais relevante** — é a fonte documental principal; as demais docs ficam subordinadas a ela. Divergências doc × código continuam sendo registradas nesta seção (código = estado atual, doc.md = referência canônica).
 
@@ -629,20 +650,20 @@ A fonte de verdade sobre **estado** é o **código**; a fonte documental **canô
 
 ## 18. Known Limitations (FACT — todos verificados)
 
-1. **Boot nunca completa** — `Config.build()` sempre lança (`Config.py:21-22`) → `Runtime.init()` falha → `stop()` não roda (`init()` fora do `try`).
-2. **Entrypoint de instalação quebrado** — `pyproject.toml:20` (decisão do DEV, `TODO:14`).
-3. **2 módulos não importam** — `CLI` e `ModuleManager` via `@Component`/`AttributeError` (`TODO:53`).
+1. ~~**Boot nunca completa**~~ — **RESOLVIDO (2026-10-01, FACT por execução):** o DEV reescreveu `Config.build()` (cria `configPath` se faltante, `raise` só se o path não for diretório) → `python src/coffee/main.py` completa com **exit 0** e imprime `coffe` (§6.2). Permanece a assimetria `init()` fora do `try` (se `init()` voltar a falhar, `stop()` não roda — §4.3).
+2. **Entrypoint de instalação quebrado** — `pyproject.toml:20` (decisão do DEV, `TODO:14`); o script `coffee.exe` agora existe no `.venv` (editable install em 2026-10-01) mas falha com `ModuleNotFoundError: coffee.cli.main`.
+3. ~~**2 módulos não importam**~~ — **RESOLVIDO (2026-10-01)**: `CLI` e `ModuleManager` importam OK (`c60908d`); 14/14 módulos verificados (`TODO:53` — o drift decisão × código permanece aberto).
 4. **Container: DI incompleta** — `_create` descreve `dependencies` via `Dependency`, mas nunca é chamado e `get()` não injeta (§4.4.3); `systemModules` sem escritor/leitor.
-5. **Registry duplicado** — `container/DefaultCoffeeRegistry.py` × `components/base/CoffeeRegistry.py`.
+5. ~~**Registry duplicado**~~ — **reclassificado (2026-10-01):** relação atual é **herança** — `container/CoffeeRegistry.py` (ABC `CoffeeRegistry`) × `container/DefaultCoffeeRegistry.py` (`DefaultCoffeeRegistry(CoffeeRegistry)`); os antigos dicts viraram listas `dependencies`/`systemModules` (§4.4.4).
 6. ~~**Typos em nomes públicos/pacotes**~~ — **CORRIGIDO em 2026-09-28** por instrução do DEV (§16.10); resta atualizar docs históricas que citam caminhos antigos (§17.8).
 7. **Sem plugin system** — `moduleRegistry`/`components` sem consumidores reais (ADR 002 = PROPOSAL).
 8. **Sem framework CLI, sem comandos** — `buildParser` sem chamador, `_addSubparsers` vazio.
 9. **Sem testes, sem CI, README vazio, LICENSE ausente** (referenciados por `pyproject.toml:16-17`).
 10. **Superfícies de segurança conhecidas** — `tool.py` pip/`sys.path`, `Config`/`Host` fora de adapter (harness §37).
 11. **Diretórios órfãos** — `egine/` (UNDEFINED), `modules/ssh/{Adpiter,models,Services}/` (`TODO:55`).
-12. **Trabalho não commitado** — renomeações/edits de 2026-09-28 (case-rename `services` staged via `git mv`; demais mudanças no working tree) + `state.json` com mojibake.
-13. **Ambiente** — `.venv` observado sem `platformdirs` apesar de `TODO:38` registrar `pip install -e .` OK.
-14. **`main.py` defects** — `tool.menu()` inexistente, `verify_modules()` sem `await`, `Start()` inalcançável.
+12. ~~**Trabalho não commitado**~~ — **RESOLVIDO (2026-10-01):** renomeações de 2026-09-28 commitadas (`ecc3603`, `3d47da8`); `state.json` reescrito sem mojibake; doc sincronizada (v0.3.2) — commit desta sessão.
+13. ~~**Ambiente** — `.venv` observado sem `platformdirs`~~ — **RESOLVIDO (2026-10-01):** `pip install -e .` executado no `.venv` (Python 3.14.7, `platformdirs` 4.12.1 OK); `import coffee` resolve de qualquer diretório.
+14. **`main.py` defects (atualizado 2026-10-01)** — `Start()` contém placeholder `print("coffe")` (substituiu o `tool.menu()` inexistente), `verify_modules()` agendado via `create_task` sem aguardar (só roda com `Debug=True`), condição `if not (app or ...)` morta, import `Config` unused desde a remoção de `config_local`. **Alcançável desde 2026-10-01** (boot exit 0 após reescrita de `Config.build()`).
 
 ---
 
@@ -666,11 +687,11 @@ Cada item de §18 corresponde a entrada em `docs/TODO.md` ([H] decisão do DEV, 
 
 | Arquivo | Status | Observação |
 |---|---|---|
-| `docs/doc.md` | **ESTE ARQUIVO (0.3.1)** | doc principal, atualizada contra HEAD `cb2b812` + rename 2026-09-28 + refatoração de tipos 2026-09-29 (§16.11) |
-| `docs/TODO.md` | não commitado | registra os findings (14-15, 47-49) |
-| `docs/ai/STATE.md` | 2026-09-23 | itens 5-6 do próximo passo já feitos; item 7 mudou de objeto |
-| `docs/architecture/runtime.md` | PROPOSAL, stale | §7 = código anterior ao HEAD; conflitos em §17 |
-| `docs/architecture/components-aop.md` | DECISION 2026-09-25 | **mais atualizado**, consistente com o código |
+| `docs/doc.md` | **ESTE ARQUIVO (0.3.2)** | doc principal, atualizada contra HEAD `b9b15a8` + rename 2026-09-28 + refatoração de tipos 2026-09-29 (§16.11) + sync de paths/imports 2026-10-01 |
+| `docs/TODO.md` | não commitado | registra os findings (14-15, 47-49); atualizado em 2026-10-01 (drift 53/54, task de imports) |
+| `docs/ai/STATE.md` | 2026-10-01 | sincronizado com o estado pós-import-cleanup |
+| `docs/architecture/runtime.md` | PROPOSAL, paths atualizados 2026-10-01 | §7 = código anterior ao HEAD; conflitos em §17 |
+| `docs/architecture/components-aop.md` | DECISION 2026-09-25, paths/status atualizados 2026-10-01 | consistente com o código pós-`c60908d`/`3d47da8` |
 | `docs/decisions/001-007` | 001/003/005/006/007 DECIDED | 006 (componentes) e 007 (DI) governam a área |
 | `docs/specs/coffee-cli-v1.md` | spec V1 | comandos, domínio, config, lifecycle (PROPOSAL) |
 | `docs/diagrams/architecture.mmd` | — | 4 diagramas |
@@ -680,7 +701,7 @@ Cada item de §18 corresponde a entrada em `docs/TODO.md` ([H] decisão do DEV, 
 
 ## Apêndice B — Como esta doc foi produzida
 
-1. Exploração completa da codebase pelo `codebase-explorer` (task context: `.agents/protocol/tasks/temp/docs-main-technical-context.md`), com classificação FACT/INFERENCE/PROPOSAL/UNKNOWN e confidence por achado.
+1. Exploração completa da codebase pelo `codebase-explorer` (task context histórico: `.agents/protocol/tasks/temp/docs-main-technical-context.md`; **relatório global agora existe**: `.agents/protocol/docs/codebase-explorer.json`, gerado em 2026-10-01 @ `b9b15a8`), com classificação FACT/INFERENCE/PROPOSAL/UNKNOWN e confidence por achado.
 2. Verificação por execução de comportamento crítico (decorator, `Config.build()`, imports quebrados, `tool.menu()`).
 3. Cruzamento doc ↔ código (§17) e com o relato do DEV sobre trechos fora de escopo (§16).
 4. Escrita seguindo a estrutura de documentação técnica consolidada (AGENTS.md §18) e padrões de doc técnica profissional (escopo explícito, não documentar features que não existem, evidência antes de certeza).
