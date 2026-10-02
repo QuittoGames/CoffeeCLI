@@ -1,6 +1,7 @@
 import inspect
 
 from coffee.config.Config import Config
+from coffee.data.Host import Host
 from coffee.core.domain.models.Dependency import Dependency
 from coffee.core.domain.interface.SystemModule import SystemModule
 from coffee.core.container.DefaultCoffeeRegistry import DefaultCoffeeRegistry

@@ -1,5 +1,6 @@
 import inspect
 from collections.abc import Callable
+from typing import Any
 
 from coffee.config.Config import Config
 from coffee.core.container.CoffeeApplicationContainer import (
@@ -44,7 +45,7 @@ class CoffeeApplicationRuntime:
         cls._container = None
         return True
 
-    def __call__(self, *args: object, **kwargs: object) -> object:
+    def __call__(self, *args: object, **kwargs: object) -> Any:
         """Decorator de lifecycle — init → ponto de entrada → stop (em finally).
 
         Aceita as duas formas previstas em runtime.md §12.3:

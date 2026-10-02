@@ -6,18 +6,15 @@ from coffee.core.domain.exceptions.InvalidCoffeeApplicationException import (
     InvalidCoffeeApplicationException,
 )
 
-config_local = Config()
-
-
 def Start():
-    tool.menu()
-
+    print("coffe")
 
 @CoffeeApplicationRuntime
 async def main(app: CoffeeApplicationRuntime):
     try:
-        if config_local.Debug:
-            tool.verify_modules()
+        contener = app.getContainer()
+        if contener.config.Debug:
+            asyncio.create_task(tool.verify_modules())
 
         if not (app or app.getContainer()):
             raise InvalidCoffeeApplicationException(
