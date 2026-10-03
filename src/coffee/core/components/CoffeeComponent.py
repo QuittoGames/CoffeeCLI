@@ -1,13 +1,15 @@
 from abc import ABC
-from typing import Any
+from typing import TypeVar
 
+from coffee.core.domain.interface.ApplicationContainer import ApplicationContainer
+from coffee.core.runtime.CoffeeApplicationContext import CoffeeApplicationContext
+
+T = TypeVar("T")
 
 class CoffeeComponent(ABC):
-    def __init__(self) -> None:
-        self.container = None
+    @property
+    def container(self) -> ApplicationContainer:
+        return CoffeeApplicationContext.getApp().getContainer()
 
-    def initialize(self, container: Any | None = None) -> None:
-        self.container = container
-
-    def get(self, key: str) -> Any:
-        return self.container
+    def get(self, component: type[T]) -> T:
+        return self.container.get(component)

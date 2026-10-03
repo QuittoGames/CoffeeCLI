@@ -9,6 +9,7 @@ from coffee.core.container.CoffeeApplicationContainer import (
 from coffee.core.container.registry import registry
 from coffee.core.container.CoffeeRegistry import CoffeeRegistry
 from coffee.core.domain.interface.ApplicationRuntime import ApplicationRuntime
+from coffee.core.runtime.CoffeeApplicationContext import CoffeeApplicationContext
 
 
 class CoffeeApplicationRuntime(ApplicationRuntime):
@@ -57,6 +58,7 @@ class CoffeeApplicationRuntime(ApplicationRuntime):
         Em ambas o ponto de entrada recebe o runtime como argumento.
         """
         func = self._func
+        token = CoffeeApplicationContext.setApp(self)
 
         if func is None:
             # @CoffeeApplicationRuntime() — ainda estamos na fase de factory.
@@ -77,6 +79,7 @@ class CoffeeApplicationRuntime(ApplicationRuntime):
         try:
             return func(self)
         finally:
+            CoffeeApplicationContext.resetApp(token)
             self.stop()
 
     async def _invokeAsync(self, func: Callable[..., object]) -> object:

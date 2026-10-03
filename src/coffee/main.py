@@ -1,4 +1,5 @@
 from coffee.config.Config import Config
+from coffee.core.services.module.ModuleManager import ModuleManager
 from coffee.core.services.tool import tool
 import asyncio
 from coffee.core.runtime.CoffeeApplicationRuntime import CoffeeApplicationRuntime
@@ -9,6 +10,8 @@ from coffee.core.domain.exceptions.InvalidCoffeeApplicationException import (
 def Start():
     tool.clear_screen()
     print("coffe")
+    a = ModuleManager().loadModules()
+    print(a)
 
 @CoffeeApplicationRuntime
 async def main(app: CoffeeApplicationRuntime):
