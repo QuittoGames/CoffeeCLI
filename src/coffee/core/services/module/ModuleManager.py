@@ -5,7 +5,6 @@ from coffee.core.components.decorators.Component import Component
 from coffee.core.components.CoffeeComponent import CoffeeComponent
 from coffee.core.domain.interface.SystemModule import SystemModule
 
-
 @dataclass
 @Component
 class ModuleManager(CoffeeComponent):
