@@ -2,79 +2,71 @@
   "name": "codebase report",
   "schema_version": "1.0",
   "producer": "codebase-explorer",
-  "mode": "GENERAL EXPLORATION",
-  "focus": "DIP / interface-extraction readiness — inventário de classes concretas candidatas a extração de interface (ApplicationRuntime etc.), padrões de abstração existentes, construção/conexão do runtime+container, e estado de saúde do working tree",
-  "updated_at": "2026-10-03T00:16:20.275610+00:00",
+  "mode": "TASK CONTEXT EXPLORATION + GLOBAL REFRESH",
+  "focus": "Application Runtime + Application Context (ContextVar) + Dependency Injection (Container/Registry) + Components — fluxo de lifecycle sync/async, invariantes verificados no código, conflitos code↔docs. Refresh do estado global (commit 628e772 — o WIP do Context foi commitado DURANTE esta exploração; baseline 9ddf051).",
+  "updated_at": "2026-10-03T14:09:55.850594+00:00",
   "git": {
     "branch": "main",
-    "commit": "206f180859093d2cdd76600e68fb078e4af3ee33"
+    "commit": "628e772bad33b66470a04f94604b090fe29aa7b7"
   },
   "git_detail": {
-    "commit_subject": "docs: sync technical doc to boot-complete code state (doc.md 0.3.2, runtime.md, STATE.md)",
-    "upstream": "origin/main (main...origin/main, sem divergência reportada)",
+    "commit_subject": "feat(context): implement CoffeeApplicationContext for managing application runtime state (refactor(ModuleManager): loadModules com container checks; refactor(ModuleDecorator): class decorator; refactor(CoffeeComponent): container via CoffeeApplicationContext)",
     "recent_commits": [
-      "206f180 2026-10-01 docs: sync technical doc to boot-complete code state (doc.md 0.3.2, runtime.md, STATE.md)",
-      "2d7bcc0 2026-10-01 feat(config): rewrite Config.build to create config dir and sync main/container/runtime",
-      "b9b15a8 2026-10-01 refactor: update import paths and enhance type hints across multiple modules",
-      "3d47da8 2026-10-01 feat: implement initial configuration and component registry structure",
-      "0b0fcde 2026-09-29 docs: add CoffeeSDK component architecture diagram"
+      "628e772 feat(context): implement CoffeeApplicationContext for managing application runtime state ...",
+      "9ddf051 refactor: remove unnecessary blank lines in ApplicationContainer.py and ApplicationRuntime.py",
+      "22d0e7b refactor: remove unnecessary blank line in ModuleManager.py",
+      "7508235 feat: Implement ApplicationContainer and ApplicationRuntime interfaces",
+      "206f180 docs: sync technical doc to boot-complete code state (doc.md 0.3.2, runtime.md, STATE.md)"
     ],
     "working_tree": {
-      "status": "DIRTY — 7 arquivos modificados não commitados (nenhum untracked)",
-      "files": [
-        "src/coffee/core/components/CoffeeComponent.py",
-        "src/coffee/core/components/decorators/Component.py",
-        "src/coffee/core/runtime/CLI.py",
-        "src/coffee/core/runtime/CoffeeApplicationRuntime.py",
-        "src/coffee/core/services/module/ModuleManager.py",
-        "src/coffee/core/services/tool.py",
-        "src/coffee/main.py"
+      "status": "CLEAN em src/ — o WIP observado durante a exploração (6 M + 1 untracked) foi commitado como 628e772 ENQUANTO a exploração rodava; no momento do write só .agents/ está modificado",
+      "committed_in_628e772": [
+        "src/coffee/core/components/CoffeeComponent.py (property container via CoffeeApplicationContext)",
+        "src/coffee/core/components/decorators/Component.py (blank line)",
+        "src/coffee/core/components/decorators/Module.py (ModuleDecorator class)",
+        "src/coffee/core/runtime/CoffeeApplicationContext.py (NOVO — ContextVar _current_app + setApp/getApp/resetApp)",
+        "src/coffee/core/runtime/CoffeeApplicationRuntime.py (+ setApp em __call__:61, + resetApp no finally síncrono:82)",
+        "src/coffee/core/services/module/ModuleManager.py (+ __post_init__, loadModules via self.container/getConfig)",
+        "src/coffee/main.py (Start() ganhou ModuleManager().loadModules())"
       ],
-      "diff_summary": "CoffeeComponent: registry→instância container + initialize(container) + get(key); Component decorator: import novo de CoffeeApplicationRuntime + closure init() morta; CLI: RuntimeCLI passa a herdar CoffeeComponent; Runtime: -1 blank line; ModuleManager: herda CoffeeComponent + linha dataPath=self.configPath/'coffee'; tool: cria .venv se ausente (runner não usado); main: Start() ganha tool.clear_screen()",
-      "critical": "O working tree está IMPORT-BROKEN (ver F-001) — HEAD commitado está OK",
+      "note": "O conteúdo analisado é EXATAMENTE o commitado em 628e772 (git show --stat: 7 arquivos, 71+/13-) — todos os file:line deste relatório valem para o HEAD atual. Relatório anterior (206f180) registrava working tree IMPORT-BROKEN (F-001) — RESOLVIDO (39/39 imports, compileall exit 0).",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "git status --short (7 M)",
-        "git diff HEAD",
-        "git archive HEAD + import test em temp dir"
+        "git status --short (só .agents/)",
+        "git show --stat 628e772 (7 arquivos)",
+        "python -m compileall -q -f src → exit 0",
+        "import walk_packages: 39 módulos, 0 falhas"
       ]
     }
   },
   "language": [
     {
       "name": "Python",
-      "version_constraint": ">=3.11 (pyproject.toml:9)",
-      "venv_python": "3.14.x (.venv)"
-    },
-    {
-      "build": "setuptools>=77.0 (setuptools.build_meta)",
-      "package_layout": "src-layout: [tool.setuptools.packages.find] where=[\"src\"]"
-    },
-    {
+      "version_constraint": ">=3.11 (pyproject.toml)",
+      "package_layout": "src-layout (src/coffee/)",
       "dependencies_external": [
         "platformdirs"
       ],
-      "dependency_source": "pyproject [project].dependencies"
-    },
-    {
-      "tests": "nenhum (0 arquivos de teste)",
-      "ci": false,
-      "lint": "sem config versionada; .ruff_cache/ presente"
-    },
-    {
-      "entry_declared": "coffee = \"coffee.cli.main:main\" (pyproject.toml:20) — MÓDULO INEXISTENTE (BROKEN)"
+      "tests": "nenhum (0 arquivos de teste), ci: false",
+      "entry_declared": "coffee = \"coffee.cli.main:main\" (pyproject) — MÓDULO INEXISTENTE (BROKEN, TODO:14)",
+      "file_counts": "41 arquivos .py em src/",
+      "type": "FACT",
+      "confidence": "HIGH"
     }
   ],
   "architecture": [
     {
       "declared_by_dev": {
-        "source": [
-          ".agents/harness.md §10/§12",
-          ".agents/specs/coffee-components-aop.md (DECISION 2026-09-25)"
+        "sources": [
+          ".agents/harness.md §35 (Config/Container/Boot), §45 (Component Model / AOP Decision)",
+          ".agents/specs/coffee-components-aop.md (DECISION DEV 2026-09-25)",
+          "docs/decisions/001-runtime-lifecycle-boundary.md (ACCEPTED)",
+          "docs/decisions/006-component-decorators-no-aop.md (ACCEPTED)",
+          "docs/decisions/007-modulemanager-dependency-injection.md (ACCEPTED)"
         ],
-        "layers": "core/ = kernel; modules/ = features; direction modules→core permitido, core→modules proibido",
-        "di_intent": "spec coffee-components-aop.md: CoffeeComponent (base) → CoffeeRegistry (register/discovery/resolution) → CoffeeApplicationContainer (DI); 'DIP → mantém o código dependente de abstrações em vez de implementações concretas' (L94-95)",
+        "roles": "Config define · Container disponibiliza · Runtime controla · Service executa",
+        "dip": "spec coffee-components-aop.md: CoffeeComponent (base) → CoffeeRegistry (registro/descoberta/resolução) → CoffeeApplicationContainer (DI); DIP = depender de abstrações (L94-95)",
         "type": "FACT",
         "confidence": "HIGH"
       }
@@ -82,23 +74,32 @@
     {
       "observed_layers": {
         "kernel": "src/coffee/core/ (components, container, domain, runtime, services)",
-        "features": "src/coffee/modules/ (ssh, system, update)",
-        "shared_config": "src/coffee/config/ (Config)",
-        "shared_data": "src/coffee/data/ (Host)",
+        "features": "src/coffee/modules/ (ssh, system, update) — nenhum importador (sem discovery)",
+        "shared": "src/coffee/config/ (Config), src/coffee/data/ (Host)",
         "composition_root": "src/coffee/main.py + CoffeeApplicationRuntime.init()",
         "type": "FACT",
         "confidence": "HIGH"
       }
     },
     {
-      "style": "kernel/registry/DI explícito: decorators @Component/@Module → singleton registry → Container → Runtime (lifecycle boundary). Sem framework de DI. ADR 007 (ACCEPTED) define constructor injection via composition root, ainda NÃO implementado.",
-      "type": "INFERENCE",
-      "confidence": "HIGH"
+      "style": "Kernel com decorator-based registration + container-based resolution + ContextVar-based context delivery. Interfaces ABC recém-criadas pelo DEV (TASK-027..032, commit 7508235): ApplicationRuntime, ApplicationContainer, CoffeeRegistry (com @abstractmethod). Sem framework DI, sem Protocol, sem testes.",
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "src/coffee/core/domain/interface/ApplicationRuntime.py:8-29",
+        "src/coffee/core/domain/interface/ApplicationContainer.py:5-16",
+        "src/coffee/core/container/CoffeeRegistry.py:12-38",
+        "rg abstractmethod src/ → 3 arquivos (ApplicationRuntime, ApplicationContainer, CoffeeRegistry)"
+      ]
     },
     {
-      "ioc": "docs/architecture/runtime.md §9: com runtime, a infraestrutura entrega o contexto ao ponto de entrada (main recebe contexto ← Runtime ← Container); §10: 1 Application Runtime → 1 Application Container → instâncias da aplicação; §11: Runtime deve permanecer pequeno (sem business logic).",
+      "context_mechanism_new": "MECANISMO NOVO E NÃO DOCUMENTADO: CoffeeApplicationContext (commitado em 628e772 durante a exploração) entrega a instância do Runtime via ContextVar 'coffee_current_app' — componente acessa o app atual sem receber app por parâmetro. Nenhum doc (docs/, .agents/, AGENTS.md) menciona ContextVar/setApp/getApp/resetApp/CoffeeApplicationContext.",
       "type": "FACT",
-      "confidence": "HIGH"
+      "confidence": "HIGH",
+      "evidence": [
+        "rg -i 'contextvar|setApp|getApp|resetApp|CoffeeApplicationContext' docs/ .agents/ → 0 matches relevantes",
+        "src/coffee/core/runtime/CoffeeApplicationContext.py:1-32"
+      ]
     }
   ],
   "structure": {
@@ -109,8 +110,7 @@
           "type": "source-root",
           "children": {
             "coffee": {
-              "type": "python-package",
-              "note": "src-layout; único top-level"
+              "type": "python-package"
             }
           }
         },
@@ -142,226 +142,112 @@
             "specs": {}
           }
         },
+        "egine": {
+          "type": "empty-directory",
+          "note": "diretório vazio na raiz (possível typo de 'engine')"
+        },
         "pyproject.toml": {
           "type": "build-config"
-        },
-        ".venv": {
-          "type": "virtualenv",
-          "note": "coffee-cli 0.1.0 instalado via pip install -e . (TODO Completed 2026-10-01); script coffee.exe existe mas entrypoint quebra (ModuleNotFoundError coffee.cli.main)"
         }
       }
     },
-    "src/coffee": {
-      "type": "package",
+    "src/coffee/core": {
+      "type": "kernel",
       "children": {
-        "__init__.py": {
-          "type": "package-marker",
-          "bytes": 0
-        },
-        "main.py": {
-          "type": "composition-root",
-          "symbols": [
-            "Start",
-            "main"
-          ],
-          "bytes": 949
-        },
-        "config": {
-          "type": "shared-layer",
+        "runtime/": {
           "files": {
-            "Config.py": {
-              "type": "source-file",
-              "bytes": 829
+            "CoffeeApplicationRuntime.py": {
+              "role": "decorator de lifecycle + composition root (classmethods com estado de classe)"
             },
-            "__init__.py": {
-              "type": "package-marker",
-              "bytes": 0
+            "CoffeeApplicationContext.py": {
+              "role": "ContextVar de app atual (NOVO — commitado em 628e772)",
+              "status": "TRACKED (628e772)"
+            },
+            "CLI.py": {
+              "role": "RuntimeCLI @Component (sem wiring — ninguém importa)"
+            },
+            "lifecycle/__init__.py": {
+              "role": "package marker vazio"
             }
           }
         },
-        "data": {
-          "type": "shared-layer",
+        "container/": {
           "files": {
-            "Host.py": {
-              "type": "source-file",
-              "bytes": 159
+            "CoffeeApplicationContainer.py": {
+              "role": "implementação concreta do DI container"
             },
-            "__init__.py": {
-              "type": "package-marker",
-              "bytes": 0
+            "CoffeeRegistry.py": {
+              "role": "ABC do registry (@dataclass sobre ABC, 6 @abstractmethod)"
+            },
+            "DefaultCoffeeRegistry.py": {
+              "role": "implementação — estado em atributos de CLASSE"
+            },
+            "registry.py": {
+              "role": "singleton module-level: registry = DefaultCoffeeRegistry()"
             }
           }
         },
-        "core": {
-          "type": "kernel",
-          "children": {
-            "__init__.py": {
-              "type": "package-marker",
-              "bytes": 0
+        "components/": {
+          "files": {
+            "CoffeeComponent.py": {
+              "role": "ABC base — property container via Context + get(component)"
             },
-            "__main__.py": {
-              "type": "package-marker",
-              "bytes": 0,
-              "note": "`python -m coffee.core` é no-op"
+            "decorators/Component.py": {
+              "role": "@Component → registry.register, devolve a classe"
             },
-            "components": {
-              "files": {
-                "CoffeeComponent.py": {
-                  "type": "source-file",
-                  "bytes": 296
-                },
-                "decorators/Component.py": {
-                  "type": "source-file",
-                  "bytes": 473
-                },
-                "decorators/Module.py": {
-                  "type": "source-file",
-                  "bytes": 289
-                },
-                "metadata/__init__.py": {
-                  "type": "package-marker",
-                  "bytes": 0
-                }
-              }
-            },
-            "container": {
-              "files": {
-                "CoffeeApplicationContainer.py": {
-                  "type": "source-file",
-                  "bytes": 1663
-                },
-                "CoffeeRegistry.py": {
-                  "type": "source-file",
-                  "bytes": 383
-                },
-                "DefaultCoffeeRegistry.py": {
-                  "type": "source-file",
-                  "bytes": 1567
-                },
-                "registry.py": {
-                  "type": "source-file",
-                  "bytes": 123
-                }
-              }
-            },
-            "domain": {
-              "children": {
-                "exceptions": {
-                  "files": {
-                    "InvalidCoffeeApplicationException.py": {
-                      "type": "source-file",
-                      "bytes": 138
-                    }
-                  }
-                },
-                "interface": {
-                  "files": {
-                    "SystemModule.py": {
-                      "type": "source-file",
-                      "bytes": 737
-                    }
-                  }
-                },
-                "models": {
-                  "files": {
-                    "Dependency.py": {
-                      "type": "source-file",
-                      "bytes": 197
-                    }
-                  }
-                }
-              }
-            },
-            "runtime": {
-              "files": {
-                "CLI.py": {
-                  "type": "source-file",
-                  "bytes": 801
-                },
-                "CoffeeApplicationRuntime.py": {
-                  "type": "source-file",
-                  "bytes": 2608
-                },
-                "lifecycle/__init__.py": {
-                  "type": "package-marker",
-                  "bytes": 0
-                }
-              }
-            },
-            "services": {
-              "files": {
-                "tool.py": {
-                  "type": "source-file",
-                  "bytes": 1671
-                },
-                "module/ModuleManager.py": {
-                  "type": "source-file",
-                  "bytes": 565
-                }
-              }
+            "decorators/Module.py": {
+              "role": "@Module → registry.packageRegister, devolve a classe"
             }
           }
         },
-        "modules": {
-          "type": "features",
-          "children": {
-            "ssh": {
-              "files": {
-                "package.py": {
-                  "type": "source-file",
-                  "bytes": 576
-                }
-              }
+        "domain/interface/": {
+          "files": {
+            "ApplicationRuntime.py": {
+              "role": "ABC — __init__/init/getContainer/setConfig/stop/__call__ (classmethods abstratos)"
             },
-            "system": {
-              "files": {
-                "__init__.py": {
-                  "type": "package-marker",
-                  "bytes": 0
-                }
-              }
+            "ApplicationContainer.py": {
+              "role": "ABC — __init__/get/getConfig/setConfig"
             },
-            "update": {
-              "files": {
-                "__init__.py": {
-                  "type": "package-marker",
-                  "bytes": 0
-                }
-              }
+            "SystemModule.py": {
+              "role": "ABC de módulos de feature (herda CoffeeComponent)"
             }
-          },
-          "note": "nenhum código importa coffee.modules.* (sem discovery/loader)"
+          }
+        },
+        "services/": {
+          "files": {
+            "module/ModuleManager.py": {
+              "role": "@dataclass @Component — usa self.container (Context) para getConfig"
+            },
+            "tool.py": {
+              "role": "utility (clear_screen, verify_modules, add_path_modules)"
+            }
+          }
         }
-      },
-      "counts": {
-        "py_files": 29,
-        "empty_init_or_marker": 20
       }
     }
   },
-  "description": "Coffee CLI: CLI Python (src-layout, >=3.11). Bootstrap: coffee.main decora coroutine main com @CoffeeApplicationRuntime; __call__ → init() (Config().build() → registry singleton → CoffeeApplicationContainer) → entry(func(self)) → stop(). Registro via @Component (registry.register) e @Module (registry.packageRegister). Container.get() resolve por identidade no DefaultCoffeeRegistry e instancia sem argumentos (incompatível com ctor injection). Nenhum Protocol no projeto; 3 ABCs (CoffeeComponent, SystemModule, CoffeeRegistry) sem nenhum @abstractmethod. Código pequeno (29 .py), sem testes/CI. Working tree atual contém WIP não commitado que quebra imports (F-001).",
+  "description": "Coffee CLI: CLI Python (src-layout, >=3.11). Bootstrap atual: main.py decora `async def main` com @CoffeeApplicationRuntime (forma bare → instância). `main()` → Runtime.__call__ → token=ContextVar.setApp(self) ANTES de init() → _invokeAsync → init() (Config().build() → registry singleton → CoffeeApplicationContainer(config)) → entrypoint recebe a instância → finally: stop() (async) ou resetApp(token)+stop() (sync). Componentes resolvem o app atual via CoffeeApplicationContext.getApp().getContainer() (service-locator contextual), tipado como ApplicationContainer (abstração). Registry registra CLASSES (import time, @Component/@Module); Container resolve INSTÂNCIAS novas a cada get() (sem cache). Assimetrias: rota async NÃO chama resetApp (leak verificado por execução → Start() termina com RuntimeError 'CoffeeApplicationRuntime is not initialized', exit 1 no HEAD atual); factory @Runtime() seta token no decorate e nunca reseta; init() fora do try nas duas rotas. Estado do ciclo de vida (_container/_registry) é de CLASSE → toda instância de Runtime compartilha o mesmo container. Sem testes; 39/39 módulos importam; 0 travas de sincronização no código.",
   "entrypoints": [
     {
       "id": "pyproject-console-script",
-      "declared": "coffee = \"coffee.cli.main:main\" (pyproject.toml:20)",
-      "status": "BROKEN — módulo inexistente (coffee.cli não existe)",
+      "declared": "coffee = \"coffee.cli.main:main\" (pyproject)",
+      "status": "BROKEN — módulo inexistente (DECISION pendente do DEV, docs/TODO.md:14)",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "pyproject.toml:20",
-        "docs/TODO.md:14 registra como decisão pendente do DEV"
+        "pyproject.toml",
+        "docs/TODO.md:14"
       ]
     },
     {
       "id": "python-module-main",
-      "declared": "src/coffee/main.py → `if __name__ == \"__main__\": asyncio.run(main()); Start()` (L29-31)",
-      "status": "FUNCIONAL no HEAD — boot exit 0 verificado por execução (state.json 2026-10-01, após reescrita de Config.build no 2d7bcc0); IMPORT-BROKEN no working tree atual (F-001)",
+      "declared": "src/coffee/main.py → if __name__ == \"__main__\": asyncio.run(main()); Start() (L32-34)",
+      "status": "EXECUTADO NESTA EXPLORAÇÃO: import OK; boot roda o async main (init+entry OK) mas Start() → ModuleManager().loadModules() → RuntimeError 'CoffeeApplicationRuntime is not initialized' → EXIT 1 no HEAD atual 628e772 (a chamada em Start() entrou nesse commit). Em 9ddf051 (pré-context, sem essa linha) o boot era exit 0 — docs/state.json descrevem aquele estado.",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "src/coffee/main.py:29-31",
-        ".agents/state.json validationStatus",
-        "import test: coffee.main OK em HEAD, FAIL em working tree"
+        "execução: .venv\\Scripts\\python.exe -m coffee.main → traceback main.py:13 → ModuleManager.py:20 → CoffeeComponent.py:12 → CoffeeApplicationRuntime.py:37, EXITCODE=1",
+        "git show 628e772 -- src/coffee/main.py (linhas +ModuleManager/+loadModules entram neste commit)"
       ]
     },
     {
@@ -379,962 +265,705 @@
     {
       "class": "CoffeeApplicationRuntime",
       "file": "src/coffee/core/runtime/CoffeeApplicationRuntime.py",
-      "line": 12,
-      "kind": "concrete class (decorator + lifecycle boundary)",
-      "interface_exists": "NONE — nenhum ABC/Protocol correspondente",
+      "line": 15,
+      "kind": "classe concreta — decorator de lifecycle + composition root; HERDA a ABC ApplicationRuntime",
+      "interface": "coffee.core.domain.interface.ApplicationRuntime (ABC, commit 7508235)",
       "public_api": [
-        "__init__(func: Callable|None) [L16]",
-        "init() classmethod [L19-29] — composition root interno",
-        "getContainer() classmethod [L31-36] — raise RuntimeError se não init",
-        "setConfig(config) classmethod [L38-40] — delega ao container (sem chamadores)",
-        "stop() classmethod [L42-45] — _container=None; retorna True",
-        "__call__(*args, **kwargs) [L47-78] — aceita @Runtime e @Runtime(); sync: init→func(self)→finally stop",
-        "_invokeAsync(func) [L80-88] — async: init→await→finally stop"
+        "__init__(func: Callable|None) [L19-20] — só guarda self._func",
+        "init() @classmethod [L22-32] — early-return se _container não é None; Config().build() [L27]; cls._registry = registry [L28]; cls._container = CoffeeApplicationContainer(config) [L30-32]",
+        "getContainer() @classmethod [L34-39] — raise RuntimeError('CoffeeApplicationRuntime is not initialized') [L37]",
+        "setConfig(config) @classmethod [L41-43] — delega ao container (sem chamadores)",
+        "stop() @classmethod [L45-48] — cls._container = None; return True",
+        "__call__(*args, **kwargs) [L50-83] — decorator: setApp [61] → dispatch sync/async",
+        "_invokeAsync(func) [85-93] — init [86] → try await → finally stop [92-93] (SEM resetApp)"
       ],
       "attributes": [
-        "_container: CoffeeApplicationContainer|None (class attr, L13 — estado GLOBAL por classe)",
-        "_registry: CoffeeRegistry|None (class attr, L14; escrito em L25, NUNCA lido)",
-        "_func (instance, L17)"
+        "_container: CoffeeApplicationContainer|None — atributo de CLASSE [L16] (estado compartilhado por todas as instâncias)",
+        "_registry: CoffeeRegistry|None — atributo de CLASSE [L17] (escrito em L28, nunca lido — dead)",
+        "_func — por instância [L20]"
       ],
-      "constructs_directly": [
-        "Config().build() [L24]",
-        "CoffeeApplicationContainer(config=config) [L27-29]"
-      ],
-      "references": [
-        "singleton registry [L9, L25]",
-        "tipo CoffeeRegistry (apenas anotação L14)"
-      ],
-      "consumers": [
-        "coffee.main:13-14 (decorator + anotação de tipo)",
-        "coffee.core.components.decorators.Component:5,10 (WIP não-commitado: import + closure init)"
-      ],
+      "instance_semantics": "Instância normal (sem __new__/metaclass/singleton enforcement) — verificado: duas instâncias são distintas. MAS o estado de lifecycle é class-level → todas as instâncias compartilham 1 container.",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "src/coffee/core/runtime/CoffeeApplicationRuntime.py:12-88",
-        "src/coffee/main.py:4,13,14",
-        "grep consumers"
+        "src/coffee/core/runtime/CoffeeApplicationRuntime.py:15-93",
+        "src/coffee/core/domain/interface/ApplicationRuntime.py:8-29 (abstractmethods são @classmethod)",
+        "execução: DISTINCT_INSTANCES=True; CLASS_STATE_SHARED=None"
+      ]
+    },
+    {
+      "class": "CoffeeApplicationContext",
+      "file": "src/coffee/core/runtime/CoffeeApplicationContext.py",
+      "line": 14,
+      "kind": "classe utilitária SEM instância — 3 staticmethods sobre ContextVar de módulo (NOVO — commitado em 628e772)",
+      "api": [
+        "setApp(app) [L15-17] — _current_app.set(app); retorna token",
+        "getApp() [L19-28] — retorna a instância ou raise RuntimeError('CoffeeApplicationRuntime is not running') [L24-26]",
+        "resetApp(token) [L30-32] — _current_app.reset(token)"
+      ],
+      "contextvar": "_current_app: ContextVar['CoffeeApplicationRuntime|None'] = ContextVar('coffee_current_app', default=None) [L9-12] — em escopo de módulo, encapsulado (grep: único arquivo que acessa _current_app é este)",
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "src/coffee/core/runtime/CoffeeApplicationContext.py:1-32",
+        "rg '_current_app' src/ → só CoffeeApplicationContext.py",
+        "execução: OUTSIDE='CoffeeApplicationRuntime is not running'; IDENTITY same is rt=True; AFTER_RESET='CoffeeApplicationRuntime is not running'"
+      ]
+    },
+    {
+      "class": "CoffeeComponent",
+      "file": "src/coffee/core/components/CoffeeComponent.py",
+      "line": 9,
+      "kind": "ABC base de componentes — SEM __init__, SEM @abstractmethod (contrato blando)",
+      "api": [
+        "property container -> ApplicationContainer [L10-12] — CoffeeApplicationContext.getApp().getContainer()",
+        "get(component: type[T]) -> T [L14-15] — self.container.get(component)"
+      ],
+      "wip": "Substituiu __init__(self)/initialize(container)/get(key) (estado ≤9ddf051) por property contextual via Context — commitado em 628e772",
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "src/coffee/core/components/CoffeeComponent.py:1-15",
+        "git diff src/coffee/core/components/CoffeeComponent.py"
+      ]
+    },
+    {
+      "class": "ApplicationContainer (ABC)",
+      "file": "src/coffee/core/domain/interface/ApplicationContainer.py",
+      "line": 5,
+      "kind": "ABC com 4 @abstractmethod: __init__(config), get(component), getConfig(), setConfig(config)",
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "src/coffee/core/domain/interface/ApplicationContainer.py:5-16"
+      ]
+    },
+    {
+      "class": "CoffeeApplicationContainer",
+      "file": "src/coffee/core/container/CoffeeApplicationContainer.py",
+      "line": 11,
+      "kind": "implementação concreta de ApplicationContainer (commit 7508235)",
+      "api": [
+        "__init__(config) [L12-15] — self.config; self.dependencies: list[Dependency]=[]; self.systemModules: list[SystemModule]=[]",
+        "get(component) [L41-47] — DefaultCoffeeRegistry.get(component) [L42, classe concreta] → LookupError('Component not registered: X') [L45] → implementation() NOVA instância sem args [L47]",
+        "getConfig() [L49-50] / setConfig() [L52-53]"
+      ],
+      "dead": "_create(dependency) [L17-39] — reflexão sobre assinatura de __init__; NUNCA chamado (grep)",
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "src/coffee/core/container/CoffeeApplicationContainer.py:1-53",
+        "execução: registry_has_ModuleManager=True; container_new_instance_each_get=True; lookup_error='Component not registered: X'"
+      ]
+    },
+    {
+      "class": "CoffeeRegistry (ABC) / DefaultCoffeeRegistry",
+      "file": "src/coffee/core/container/CoffeeRegistry.py / DefaultCoffeeRegistry.py",
+      "line": "12 / 12",
+      "kind": "ABC @dataclass com 6 @classmethod @abstractmethod (register, packageRegister, contains, get, getModule, all); implementação com estado em ATRIBUTOS DE CLASSE",
+      "state": [
+        "DefaultCoffeeRegistry.dependencies: list[Dependency] = [] [L13] — classe registrada como classImpl",
+        "DefaultCoffeeRegistry.systemModules: list[type[SystemModule]] = [] [L14]",
+        "singleton module-level: registry = DefaultCoffeeRegistry() (registry.py:5)"
+      ],
+      "note": "CORREÇÃO vs relatório anterior: CoffeeRegistry HOJE TEM @abstractmethod (TASK-029/commit 7508235) — relatório antigo dizia '0 abstractmethod'",
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "src/coffee/core/container/CoffeeRegistry.py:12-38",
+        "src/coffee/core/container/DefaultCoffeeRegistry.py:12-48",
+        "src/coffee/core/container/registry.py:5"
+      ]
+    },
+    {
+      "class": "ComponentDecorator / ModuleDecorator",
+      "file": "src/coffee/core/components/decorators/Component.py / Module.py",
+      "line": "9 / 9",
+      "kind": "instâncias de classe usadas como decorator (@Component = ComponentDecorator() [L14]; @Module = ModuleDecorator() [L14])",
+      "behavior": "__call__ apenas registra e devolve a MESMA classe — não instancia, não wrapa, não injeta",
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "src/coffee/core/components/decorators/Component.py:9-14",
+        "src/coffee/core/components/decorators/Module.py:9-14"
+      ]
+    },
+    {
+      "class": "ModuleManager",
+      "file": "src/coffee/core/services/module/ModuleManager.py",
+      "line": 12,
+      "kind": "@dataclass @Component, herda CoffeeComponent (estado atual desde 628e772)",
+      "api": [
+        "__post_init__ [L15-16] — chama super().__init__() (base não tem __init__ → ABC/object)",
+        "loadModules() [L18-29] — assert self.container is not None [L20] → self.container.getConfig() [L22] → dataPath = config.configPath/'coffee' [L24]"
+      ],
+      "note": "@dataclass aplicado ACIMA de @Component (bottom-up): Component registra a classe já dataclass; dataclass muta in-place → identidade preservada no registry",
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "src/coffee/core/services/module/ModuleManager.py:1-29",
+        "execução: c.get(ModuleManager) instancia OK (dataclass init + __post_init__)"
       ]
     },
     {
       "class": "RuntimeCLI",
       "file": "src/coffee/core/runtime/CLI.py",
       "line": 8,
-      "kind": "concrete class, @Component, herda CoffeeComponent (WIP; HEAD sem herança)",
-      "interface_exists": "NONE além de CoffeeComponent (base ABC genérica, sem métodos abstratos)",
-      "public_api": [
-        "__init__(moduleManager: ModuleManager, config: Config) [L11-13] — assinatura de ctor injection",
-        "buildParser() [L15-19]",
-        "_addSubparsers() [L21-23] — loop com corpo pass"
-      ],
-      "attributes": [
-        "parser: argparse.ArgumentParser (anotação L9)",
-        "moduleManager, config (L12-13)"
-      ],
-      "constructs_directly": [
-        "nenhum (dependências recebidas via construtor)"
-      ],
-      "consumers": [
-        "NENHUM — CLI.py não é importado por ninguém (sem wiring)"
-      ],
+      "kind": "@Component, herda CoffeeComponent; __init__(moduleManager, config) [L11-13] — ctor injection declarado mas SEM wiring (ninguém importa o módulo); container.get(RuntimeCLI) falharia (2 args obrigatórios × chamada sem args)",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
         "src/coffee/core/runtime/CLI.py:1-23",
-        "grep 'coffee.core.runtime.CLI|RuntimeCLI' → apenas definição"
-      ],
-      "note": "container.get(RuntimeCLI) chamaria RuntimeCLI() sem args → TypeError (2 args obrigatórios) — ver F-003"
-    },
-    {
-      "class": "CoffeeApplicationContainer",
-      "file": "src/coffee/core/container/CoffeeApplicationContainer.py",
-      "line": 9,
-      "kind": "concrete class (DI container)",
-      "interface_exists": "NONE",
-      "public_api": [
-        "__init__(config: Config) [L10-13]",
-        "get(component) [L39-45] — DefaultCoffeeRegistry.get(component) → implementation()",
-        "getConfig() [L47-48]",
-        "setConfig(config) [L50-51]"
-      ],
-      "private_dead": [
-        "_create(dependency) [L15-37] — reflexão sobre assinatura do __init__; NUNCA chamado (grep: só definição)"
-      ],
-      "attributes": [
-        "config: Config",
-        "dependencies: list[Dependency] (instância; populado só por _create → hoje sempre vazio)",
-        "systemModules: list[SystemModule] (instância, nunca escrito)"
-      ],
-      "constructs_directly": [
-        "nenhum — recebe Config pronto; chama DefaultCoffeeRegistry.get (classe concreta, L40)"
-      ],
-      "consumers": [
-        "CoffeeApplicationRuntime.init (constrói, L27) e getContainer (retorna)",
-        "coffee.main:16,20 (app.getContainer())",
-        "Component decorator WIP (Component.py:11 component.initialize(app.getContainer()))"
-      ],
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "src/coffee/core/container/CoffeeApplicationContainer.py:9-51",
-        "grep getContainer|_create"
-      ]
-    },
-    {
-      "class": "CoffeeRegistry",
-      "file": "src/coffee/core/container/CoffeeRegistry.py",
-      "line": 9,
-      "kind": "ABC @dataclass (a ÚNICA interface de registry) — stubs com '...' e SEM @abstractmethod",
-      "interface_exists": "SELF — é a interface; cobertura parcial (só register/contains; faltam packageRegister/get/getModule/all)",
-      "public_api": [
-        "register(cls, component) classmethod stub [L12-13]",
-        "contains(cls, component) classmethod stub [L15-16]"
-      ],
-      "attributes": [
-        "domain = TypeVar bound=CoffeeComponent (atributo de classe, L10)"
-      ],
-      "consumers": [
-        "DefaultCoffeeRegistry (herda, L12)",
-        "CoffeeApplicationRuntime (anotação _registry, L14)"
-      ],
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "src/coffee/core/container/CoffeeRegistry.py:1-16",
-        "grep abstractmethod em src/ → 0 matches"
-      ]
-    },
-    {
-      "class": "DefaultCoffeeRegistry",
-      "file": "src/coffee/core/container/DefaultCoffeeRegistry.py",
-      "line": 12,
-      "kind": "concrete class herda CoffeeRegistry; estado em atributos de CLASSE",
-      "interface_exists": "CoffeeRegistry (parcial)",
-      "public_api": [
-        "register [L16-21] (classmethod, append Dependency com uuid4)",
-        "packageRegister [L23-26]",
-        "contains [L28-30]",
-        "get [L32-37] (busca por IDENTIDADE classImpl is component)",
-        "getModule [L39-44]",
-        "all [L46-48]"
-      ],
-      "attributes": [
-        "dependencies: list[Dependency] = [] (class attr compartilhada L13)",
-        "systemModules: list[type[SystemModule]] = [] (class attr L14)"
-      ],
-      "consumers": [
-        "container/registry.py:5 (singleton registry = DefaultCoffeeRegistry())",
-        "decorators Component.py:13 / Module.py:10 (via singleton)",
-        "CoffeeApplicationContainer.get:40 (chama DefaultCoffeeRegistry.get ESTÁTICO — bypassa o ABC e o singleton)"
-      ],
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "src/coffee/core/container/DefaultCoffeeRegistry.py:12-48",
-        "src/coffee/core/container/CoffeeApplicationContainer.py:40",
-        "src/coffee/core/container/registry.py:5"
-      ]
-    },
-    {
-      "class": "CoffeeComponent",
-      "file": "src/coffee/core/components/CoffeeComponent.py",
-      "line": 4,
-      "kind": "ABC base de componentes — SEM @abstractmethod (contrato blando)",
-      "interface_exists": "SELF (ABC)",
-      "head_state": {
-        "content": "registry = None (class attr) + initialize() no-op",
-        "import_health": "OK"
-      },
-      "working_tree_state": {
-        "content": "__init__ seta self.container (L5-6); initialize(container = None | None) L8; get(key) retorna self.container (L11-12)",
-        "import_health": "BROKEN — `None | None` avaliado na criação da classe → TypeError (F-001)"
-      },
-      "consumers": [
-        "SystemModule (herda)",
-        "RuntimeCLI (herda, WIP)",
-        "ModuleManager (herda, WIP)",
-        "TypeVar bound em decorators Component/Module e CoffeeRegistry.domain"
-      ],
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "src/coffee/core/components/CoffeeComponent.py:1-12",
-        "git show HEAD:...CoffeeComponent.py",
-        "import error trace: CoffeeComponent.py line 8"
-      ]
-    },
-    {
-      "class": "ModuleManager",
-      "file": "src/coffee/core/services/module/ModuleManager.py",
-      "line": 11,
-      "kind": "concrete @dataclass @Component, herda CoffeeComponent (WIP; HEAD sem herança)",
-      "interface_exists": "NONE além de CoffeeComponent",
-      "public_api": [
-        "loadModules() [L14-16] — retorna _modulesRegistry"
-      ],
-      "attributes": [
-        "_modulesRegistry: list[SystemModule] = field(default_factory=list) [L12]"
-      ],
-      "wip_issue": "linha 15 (WIP): dataPath = self.configPath / 'coffee' — atributo configPath NÃO existe → AttributeError quando chamado (F-006)",
-      "adr_conflict": "ADR 007 (ACCEPTED) exige campo config: Config via constructor injection + criação em Runtime.init() + getter no container — NÃO implementado (F-004)",
-      "consumers": [
-        "RuntimeCLI.__init__ (tipo/param, CLI.py:4,11)",
-        "registrado via @Component"
-      ],
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "src/coffee/core/services/module/ModuleManager.py:1-16",
-        "docs/decisions/007-modulemanager-dependency-injection.md:131-137"
+        "grep consumers → apenas definição"
       ]
     },
     {
       "class": "Config",
       "file": "src/coffee/config/Config.py",
       "line": 9,
-      "kind": "@dataclass concreto (sem interface)",
-      "interface_exists": "NONE",
-      "public_api": [
-        "build() [L18-28] — makedirs se faltante; RuntimeError se não-dir; refresh Host",
-        "getHost() [L30-32]"
-      ],
-      "fields": [
-        "configPath: Path (default user_config_dir('Coffee'))",
-        "hostData: Host (default_factory=Host, L12)",
-        "Debug: bool = False",
-        "modules_local: list[str]|None"
-      ],
-      "constructs_directly": [
-        "Host() (default_factory L12 e getHost L31)"
-      ],
-      "consumers": [
-        "CoffeeApplicationRuntime.init:24 (Config().build() — instanciação DIRETA, hard dep)",
-        "Container/CLI/tool/main — anotações de tipo (main:1 import NÃO usado)"
-      ],
+      "kind": "@dataclass — configPath (default user_config_dir('Coffee')), hostData, Debug=False, modules_local; build() [L18-28] cria diretório se faltante",
+      "consumers": "Runtime.init (constrói diretamente), Container (guarda), ModuleManager (via container.getConfig desde 628e772)",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
         "src/coffee/config/Config.py:1-32",
-        "src/coffee/core/runtime/CoffeeApplicationRuntime.py:24",
-        "src/coffee/main.py:1 (import sem uso)"
-      ]
-    },
-    {
-      "class": "Host",
-      "file": "src/coffee/data/Host.py",
-      "line": 6,
-      "kind": "@dataclass concreto (sem interface)",
-      "interface_exists": "NONE",
-      "fields": [
-        "username: str = os.getlogin() (avaliado no class body — pode falhar em ambiente sem TTY/logins)",
-        "platform: str = system()"
-      ],
-      "consumers": [
-        "Config apenas"
-      ],
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "src/coffee/data/Host.py:1-8",
-        "src/coffee/config/Config.py:4,12,31"
-      ]
-    },
-    {
-      "class": "Dependency",
-      "file": "src/coffee/core/domain/models/Dependency.py",
-      "line": 5,
-      "kind": "@dataclass model (holder de dados — NÃO é candidato típico a interface)",
-      "interface_exists": "NONE",
-      "fields": [
-        "id: UUID = uuid4() (default avaliado UMA vez no class body → instâncias sem id explícito compartilham o mesmo UUID — _create usa esse caminho)",
-        "name: str",
-        "classImpl: type|None"
-      ],
-      "consumers": [
-        "DefaultCoffeeRegistry",
-        "CoffeeApplicationContainer._create"
-      ],
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "src/coffee/core/domain/models/Dependency.py:1-8",
-        "src/coffee/core/container/CoffeeApplicationContainer.py:31-34"
-      ]
-    },
-    {
-      "class": "SystemModule",
-      "file": "src/coffee/core/domain/interface/SystemModule.py",
-      "line": 4,
-      "kind": "ABC de domínio (CONTRATO de módulos de feature) — a referência de padrão de interface do projeto",
-      "interface_exists": "SELF (CoffeeComponent, ABC)",
-      "public_api": [
-        "__init__(id, name, version) [L7-10]",
-        "properties id/name/version com getters+setters [L12-30]"
-      ],
-      "consumers": [
-        "Module decorator (TypeVar bound)",
-        "DefaultCoffeeRegistry, Container, ModuleManager (anotações)",
-        "SSHModule (modules/ssh/package.py:6)"
-      ],
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "src/coffee/core/domain/interface/SystemModule.py:1-30"
-      ]
-    },
-    {
-      "class": "tool",
-      "file": "src/coffee/core/services/tool.py",
-      "line": 10,
-      "kind": "@dataclass de staticmethods (utility concreta, sem interface)",
-      "interface_exists": "NONE",
-      "public_api": [
-        "clear_screen() [L11-16]",
-        "verify_modules() async [L18-36] — cria .venv se ausente (WIP) + pip -r requirements.txt inexistente",
-        "add_path_modules(config_local) async [L38-52] — sys.path.append; sem chamadores"
-      ],
-      "consumers": [
-        "coffee.main:10 (clear_screen), main:18 (verify_modules via asyncio.create_task)"
-      ],
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "src/coffee/core/services/tool.py:1-52",
-        "src/coffee/main.py:10,18"
-      ]
-    },
-    {
-      "class": "decorators Component / Module (funções)",
-      "file": "src/coffee/core/components/decorators/Component.py / Module.py",
-      "line": "9 / 9",
-      "kind": "function decorators (não classes)",
-      "Component": "registry.register(component) [Component.py:13]; WIP adiciona closure init(app) MORTA [L10-11] e import de CoffeeApplicationRuntime [L5] — acoplamento decorator→runtime novo, não commitado",
-      "Module": "registry.packageRegister(module) [Module.py:10]",
-      "consumers": [
-        "@Component: RuntimeCLI, ModuleManager",
-        "@Module: SSHModule"
-      ],
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "src/coffee/core/components/decorators/Component.py:1-14",
-        "src/coffee/core/components/decorators/Module.py:1-11"
+        "src/coffee/core/runtime/CoffeeApplicationRuntime.py:27"
       ]
     }
   ],
-  "abstraction_patterns": {
-    "existing_abcs": [
+  "runtime_context_di": {
+    "lifecycle_order": {
+      "sync": "setApp(self) [Runtime:61] → init() [78] → try: func(self) [80] → finally: resetApp(token) [82] + stop() [83]",
+      "async": "setApp(self) [61 — no contexto do CALLER] → retorna coroutine → Task copia contexto → init() [86] → try: await func(self) [88-90] → finally: stop() [93] — SEM resetApp",
+      "factory_form": "@CoffeeApplicationRuntime() → __call__(alvo): setApp [61] → self._func=alvo → return self [66-67] — token NUNCA reseta (leak no contexto de import/decorate)",
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "src/coffee/core/runtime/CoffeeApplicationRuntime.py:61-93",
+        "execução sync: after_sync_reset_app_none=True, container_after_stop=None",
+        "execução async (python -m coffee.main): Start() alcançou getContainer() → prova de que o token do caller Context não foi resetado"
+      ]
+    },
+    "error_messages": [
       {
-        "name": "CoffeeComponent",
-        "path": "src/coffee/core/components/CoffeeComponent.py:4",
-        "role": "base de componentes gerenciáveis",
-        "abstractmethod_count": 0
+        "message": "CoffeeApplicationRuntime is not running",
+        "raised_by": "CoffeeApplicationContext.getApp() [CoffeeApplicationContext.py:24-26]",
+        "causes": [
+          "componente/app acessado fora do ciclo (ContextVar default None)",
+          "resetApp já executou (rota sync)",
+          "contexto sem herança do setApp (ex.: thread nova — contextvars não atravessam threads)",
+          "Task criada ANTES do setApp"
+        ],
+        "verified": "execução: fora do ciclo, após reset e em Demo().container → mesma mensagem",
+        "type": "FACT",
+        "confidence": "HIGH"
       },
       {
-        "name": "SystemModule",
-        "path": "src/coffee/core/domain/interface/SystemModule.py:4",
-        "role": "contrato de módulos de feature",
-        "abstractmethod_count": 0
+        "message": "CoffeeApplicationRuntime is not initialized",
+        "raised_by": "CoffeeApplicationRuntime.getContainer() [CoffeeApplicationRuntime.py:37]",
+        "causes": [
+          "init() nunca rodou",
+          "stop() já rodou (liberou _container) enquanto o ContextVar ainda aponta para o app — caso assíncrono com leak de token",
+          "chamada pós-lifecycle na mesma thread/contexto"
+        ],
+        "verified": "execução: python -m coffee.main → Start() → RuntimeError 'CoffeeApplicationRuntime is not initialized' (exit 1)",
+        "type": "FACT",
+        "confidence": "HIGH"
       },
       {
-        "name": "CoffeeRegistry",
-        "path": "src/coffee/core/container/CoffeeRegistry.py:9",
-        "role": "interface do registry",
-        "abstractmethod_count": 0,
-        "note": "@dataclass sobre ABC; stubs com corpo '...'; sem @abstractmethod → subclass pode falhar silenciosamente"
+        "message": "Component not registered: <name>",
+        "raised_by": "CoffeeApplicationContainer.get() [CoffeeApplicationContainer.py:45]",
+        "causes": [
+          "classe nunca decorada com @Component"
+        ],
+        "type": "FACT",
+        "confidence": "HIGH"
+      },
+      {
+        "message": "TypeError: CoffeeApplicationRuntime() requires a target function / the decorated entry point receives only the runtime context",
+        "raised_by": "Runtime.__call__ [L68 / L71-73]",
+        "causes": [
+          "@Runtime() sem alvo",
+          "passar args/kwargs para o ponto de entrada"
+        ],
+        "type": "FACT",
+        "confidence": "HIGH"
       }
     ],
-    "protocols": "NENHUM — grep 'Protocol' em src/ → 0 matches",
-    "abstractmethod": "NENHUM — grep 'abstractmethod' em src/ → 0 matches (import removido de CoffeeComponent.py no commit 2d7bcc0)",
-    "naming_and_organization": {
-      "domain_contracts": "core/domain/interface/<Nome>.py (SystemModule) — única pasta 'interface' dedicada",
-      "infra_contracts": "colocalizados com a impl na mesma pasta (container/CoffeeRegistry.py vs container/DefaultCoffeeRegistry.py)",
-      "naming": "sem prefixo I/Abstract; contrato = nome de domínio (SystemModule) ou de papel (CoffeeRegistry); impl = prefixo Default",
-      "file_naming": "misto: PascalCase (Config.py, CLI.py, CoffeeRegistry.py, ModuleManager.py) vs snake_case (registry.py, tool.py, package.py, main.py)"
-    },
-    "gaps_vs_intent": [
-      "Spec DIP (.agents/specs/coffee-components-aop.md L48,94) pede código dependente de abstrações; hoje Container chama DefaultCoffeeRegistry.get diretamente (concreto) e Runtime/Config/Container não têm interfaces",
-      "spec components-aop.md L109 reconhece: _create() nunca é chamado e get() não injeta",
-      "ADR 007 (constructor injection) ACCEPTED mas não implementado"
-    ],
-    "type": "FACT",
-    "confidence": "HIGH",
-    "evidence": [
-      "grep 'Protocol|abstractmethod|ABC' em src/ (6 matches, 3 arquivos)",
-      ".agents/specs/coffee-components-aop.md:102-113",
-      "docs/decisions/007-modulemanager-dependency-injection.md"
-    ]
-  },
-  "di_patterns": {
-    "construction_flow": [
-      "import de coffee.main → @CoffeeApplicationRuntime instancia o decorator (guarda func)",
-      "import dos decorators @Component/@Module → capturam singleton registry (instanciado em container/registry.py:5 na importação)",
-      "main() chamado → CoffeeApplicationRuntime.__call__/_invokeAsync → self.init() [classmethod]",
-      "init(): Config().build() [L24] → cls._registry = registry [L25] → cls._container = CoffeeApplicationContainer(config) [L27-29]",
-      "entry recebe a INSTÂNCIA do runtime: func(self) → app.getContainer() → lê container.config diretamente (main.py:16-17)",
-      "finally: stop() → _container = None"
-    ],
-    "resolution_flow": "container.get(component) → DefaultCoffeeRegistry.get (identidade: classImpl is component) → implementation() SEM ARGUMENTOS → LookupError se não registrado / TypeError se ctor exige args",
-    "injection_style_today": "NÃO há injeção real: registro por decorator + instanciação sem args; _create (reflexão de assinaturas) é dead code; ADR 007 prevê ctor injection mas ModuleManager não tem campo config",
-    "global_state": "registry singleton (módulo) + atributos de classe do DefaultCoffeeRegistry + atributos de classe do CoffeeApplicationRuntime (_container/_registry) — 3 camadas de estado compartilhado",
-    "bypass_detectado": "CoffeeApplicationContainer.py:40 usa DefaultCoffeeRegistry.get (classe concreta) em vez do singleton registry ou do ABC CoffeeRegistry — a abstração CoffeeRegistry não é usada no caminho de resolução",
-    "type": "FACT",
-    "confidence": "HIGH",
-    "evidence": [
-      "src/coffee/core/runtime/CoffeeApplicationRuntime.py:19-29,74-88",
-      "src/coffee/core/container/CoffeeApplicationContainer.py:39-45",
-      "src/coffee/core/container/registry.py:5",
-      "src/coffee/main.py:13-26"
-    ]
-  },
-  "import_health": {
-    "head_206f180": {
-      "result": "OK — 10/10 módulos de teste importam (extraídos via git archive para temp dir)",
+    "shared_state_no_sync": {
+      "statement": "O ContextVar fornece apenas a referência contextual ao app; o estado compartilhado mutável continua global e SEM nenhuma trava — ContextVar não é mecanismo de sincronização.",
+      "shared_mutable": [
+        "CoffeeApplicationRuntime._container/_registry (atributos de classe) [Runtime:16-17]",
+        "DefaultCoffeeRegistry.dependencies/systemModules (atributos de classe) [DefaultCoffeeRegistry:13-14]",
+        "CoffeeApplicationContainer.dependencies/systemModules (listas por instância; container é único via classe) [Container:14-15]",
+        "sys.path via tool.add_path_modules (mutação global) [tool.py:44]"
+      ],
+      "synchronization": "grep threading|lock|queue|asyncio.Lock em src/ → 0 matches",
       "type": "FACT",
       "confidence": "HIGH"
-    },
-    "working_tree": {
-      "result": "BROKEN — 13/18 módulos falham",
-      "root_cause": "src/coffee/core/components/CoffeeComponent.py:8 — `def initialize(self, container = None | None)` → TypeError: unsupported operand type(s) for |: 'NoneType' and 'NoneType' na criação da classe",
-      "cascade": "CoffeeComponent → SystemModule/CoffeeRegistry/decorators → Registry/Container/Runtime → CLI/ModuleManager/main/SSHModule",
-      "ok_modules": [
-        "coffee.config.Config",
-        "coffee.data.Host",
-        "coffee.core.services.tool",
-        "coffee.core.domain.models.Dependency",
-        "coffee.core.domain.exceptions.InvalidCoffeeApplicationException"
-      ],
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "execução: PYTHONPATH=src + .venv python -c 'import <m>' por módulo",
-        "traceback aponta CoffeeComponent.py line 8"
-      ]
-    },
-    "method": "PYTHONPATH=src + .venv/Scripts/python.exe"
+    }
   },
-  "modules": [
+  "invariants": [
     {
-      "module": "coffee.main",
-      "path": "src/coffee/main.py",
-      "layer": "composition-root",
-      "responsibility": "bootstrap: decorator de lifecycle + asyncio.run + Start()",
-      "depends_on": [
-        "coffee.config.Config (import sem uso)",
-        "coffee.core.services.tool",
-        "coffee.core.runtime.CoffeeApplicationRuntime",
-        "coffee.core.domain.exceptions.InvalidCoffeeApplicationException"
-      ],
-      "used_by": [],
+      "id": 1,
+      "statement": "Runtime é instância normal, não singleton estático",
+      "verdict": "CONFIRMADO COM QUALIFICAÇÃO",
+      "detail": "Instância normal: sem __new__/metaclass, duas instâncias são distintas, __call__/_invokeAsync são métodos de instância. PORÉM o estado de lifecycle (_container/_registry) é de CLASSE e init/getContainer/setConfig/stop são @classmethod (contrato da ABC ApplicationRuntime exige classmethod) → todas as instâncias compartilham 1 container (singleton-like na prática).",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "src/coffee/main.py:1-31"
+        "CoffeeApplicationRuntime.py:16-17,22-48",
+        "ApplicationRuntime.py:12-26",
+        "execução: DISTINCT_INSTANCES=True, _container é class attr"
       ]
     },
     {
-      "module": "coffee.core.runtime.CoffeeApplicationRuntime",
-      "path": "src/coffee/core/runtime/CoffeeApplicationRuntime.py",
-      "layer": "kernel",
-      "responsibility": "lifecycle boundary + decorator de entrada",
-      "depends_on": [
-        "Config (constrói)",
-        "CoffeeApplicationContainer (constrói)",
-        "registry singleton",
-        "CoffeeRegistry (tipo)"
-      ],
-      "used_by": [
-        "coffee.main",
-        "decorators.Component (WIP)"
-      ],
+      "id": 2,
+      "statement": "ContextVar contém referência contextual para o App atual",
+      "verdict": "CONFIRMADO",
+      "detail": "_current_app guarda a referência (identidade) da instância no contexto atual; default None; por contexto (Task/asyncio copia o contexto).",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "CoffeeApplicationRuntime.py:1-88"
+        "CoffeeApplicationContext.py:9-17",
+        "execução: getApp() is instância = True"
       ]
     },
     {
-      "module": "coffee.core.runtime.CLI",
-      "path": "src/coffee/core/runtime/CLI.py",
-      "layer": "kernel",
-      "responsibility": "RuntimeCLI: argparse + subparsers stub",
-      "depends_on": [
-        "Component decorator",
-        "CoffeeComponent",
-        "ModuleManager",
-        "Config"
-      ],
-      "used_by": [],
-      "note": "sem wiring — nenhum import",
+      "id": 3,
+      "statement": "Context não é singleton do Runtime",
+      "verdict": "CONFIRMADO",
+      "detail": "CoffeeApplicationContext não tem estado de instância nem propriedade do Runtime — só staticmethods sobre ContextVar de módulo; valor é None fora do ciclo e independente por contexto.",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "CLI.py:1-23",
-        "grep"
+        "CoffeeApplicationContext.py:1-32",
+        "execução: fora do ciclo → None"
       ]
     },
     {
-      "module": "coffee.core.container.CoffeeApplicationContainer",
-      "path": "src/coffee/core/container/CoffeeApplicationContainer.py",
-      "layer": "kernel",
-      "responsibility": "guarda Config + resolve via registry",
-      "depends_on": [
-        "Config",
-        "Dependency",
-        "SystemModule",
-        "DefaultCoffeeRegistry (classe concreta)"
-      ],
-      "used_by": [
-        "CoffeeApplicationRuntime",
-        "coffee.main (via getContainer)"
-      ],
+      "id": 4,
+      "statement": "Component acessa o App atual via CoffeeApplicationContext",
+      "verdict": "CONFIRMADO",
+      "detail": "property container → CoffeeApplicationContext.getApp().getContainer(); componente não recebe app por parâmetro (CoffeeComponent sem __init__).",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "CoffeeApplicationContainer.py:1-51"
+        "CoffeeComponent.py:4-5,10-12",
+        "execução: Demo().container fora do ciclo → 'CoffeeApplicationRuntime is not running'"
       ]
     },
     {
-      "module": "coffee.core.container.{CoffeeRegistry,DefaultCoffeeRegistry,registry}",
-      "path": "src/coffee/core/container/",
-      "layer": "kernel",
-      "responsibility": "ABC + impl + singleton do catálogo",
-      "depends_on": [
-        "CoffeeComponent",
-        "Dependency",
-        "SystemModule"
-      ],
-      "used_by": [
-        "Container",
-        "decorators",
-        "Runtime (tipo)"
-      ],
+      "id": 5,
+      "statement": "Component prefere ApplicationContainer como abstração",
+      "verdict": "CONFIRMADO (nível de tipagem do componente)",
+      "detail": "CoffeeComponent importa e anota ApplicationContainer (ABC) como tipo do container. Qualificação: o objeto em runtime é CoffeeApplicationContainer e o método getContainer() da concreta anota o tipo concreto (L35) — a preferência pela abstração vale no contrato do componente, não em toda a cadeia.",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "CoffeeRegistry.py:1-16",
-        "DefaultCoffeeRegistry.py:1-48",
-        "registry.py:1-5"
+        "CoffeeComponent.py:4,11",
+        "CoffeeApplicationRuntime.py:35",
+        "ApplicationContainer.py:5-16"
       ]
     },
     {
-      "module": "coffee.core.components.{CoffeeComponent,decorators}",
-      "path": "src/coffee/core/components/",
-      "layer": "kernel",
-      "responsibility": "base ABC + @Component/@Module",
-      "depends_on": [
-        "abc",
-        "registry singleton",
-        "SystemModule",
-        "CoffeeApplicationRuntime (WIP)"
-      ],
-      "used_by": [
-        "SystemModule",
-        "RuntimeCLI",
-        "ModuleManager",
-        "SSHModule"
-      ],
+      "id": 6,
+      "statement": "Registry registra classes; Container resolve instâncias",
+      "verdict": "CONFIRMADO",
+      "detail": "register() append Dependency(classImpl=classe) e devolve a classe; container.get() → lookup por identidade → implementation() = NOVA instância sem args a cada chamada (sem cache/singleton por resolução).",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "CoffeeComponent.py",
-        "Component.py",
-        "Module.py"
+        "DefaultCoffeeRegistry.py:16-21,32-37",
+        "CoffeeApplicationContainer.py:41-47",
+        "execução: registry.get(MM) is MM=True; i1 is not i2=True"
       ]
     },
     {
-      "module": "coffee.core.services.module.ModuleManager",
-      "path": "src/coffee/core/services/module/ModuleManager.py",
-      "layer": "kernel",
-      "responsibility": "catálogo de módulos (stub)",
-      "depends_on": [
-        "Component decorator",
-        "CoffeeComponent",
-        "SystemModule"
-      ],
-      "used_by": [
-        "RuntimeCLI"
-      ],
+      "id": 7,
+      "statement": "setApp() acontece antes do acesso dos componentes",
+      "verdict": "CONFIRMADO",
+      "detail": "token = setApp(self) em __call__:61 executa ANTES de init() (78/86) e ANTES de func(self) (80/88) nas duas rotas — o entrypoint e qualquer componente executado dentro dele veem o app. Observação de ordem: setApp ocorre ANTES de o container existir (durante init o ContextVar já está setado).",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "ModuleManager.py:1-16"
+        "CoffeeApplicationRuntime.py:61,78,80,86,88",
+        "execução sync: entry viu container_ready=True"
       ]
     },
     {
-      "module": "coffee.core.services.tool",
-      "path": "src/coffee/core/services/tool.py",
-      "layer": "kernel",
-      "responsibility": "clear_screen/verify_modules/add_path_modules",
-      "depends_on": [
-        "Config"
-      ],
-      "used_by": [
-        "coffee.main"
-      ],
+      "id": 8,
+      "statement": "resetApp(token) ocorre no final do lifecycle (finally)",
+      "verdict": "PARCIAL — CONFIRMADO na rota sync, REFUTADO na rota async e na factory-form",
+      "detail": "Sync: finally chama resetApp(token) [L82] + stop() [83] (verificado). Async: finally de _invokeAsync só chama stop() [93] — sem resetApp; o token setado em __call__:61 (contexto do caller) nunca reseta → leak verificado (Start() após asyncio.run ainda obtém o app e falha só em getContainer). Factory-form: token setado no decorate [61] e nunca resetado (leak verificado).",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "tool.py:1-52",
-        "main.py:10,18"
+        "CoffeeApplicationRuntime.py:81-83 vs 92-93 vs 63-67",
+        "execução sync: after_sync_reset_app_none=True",
+        "execução async: boot → Start() → RuntimeError 'CoffeeApplicationRuntime is not initialized' (app leak presente, container None)",
+        "execução factory: factory_app_none_after_decoration=False"
       ]
     },
     {
-      "module": "coffee.config.Config",
-      "path": "src/coffee/config/Config.py",
-      "layer": "shared-config",
-      "responsibility": "dataclass de config + build()",
-      "depends_on": [
-        "data.Host",
-        "platformdirs"
-      ],
-      "used_by": [
-        "Runtime (constrói)",
-        "Container",
-        "CLI",
-        "tool",
-        "main (sem uso)"
-      ],
+      "id": 9,
+      "statement": "ContextVar não substitui sincronização de estado compartilhado",
+      "verdict": "CONFIRMADO (há estado compartilhado mutável e nenhuma sincronização)",
+      "detail": "Estado global mutável: _container/_registry (classe), dependencies/systemModules do registry (classe), listas do container, sys.path. Zero primitivas de sincronização no código. O ContextVar isola APENAS a referência ao app por contexto; mutações no container/registry continuam visíveis concorrentemente.",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "Config.py:1-32"
+        "Runtime:16-17",
+        "DefaultCoffeeRegistry:13-14",
+        "Container:14-15",
+        "tool.py:44",
+        "rg threading|lock|queue → 0 matches"
       ]
     },
     {
-      "module": "coffee.data.Host",
-      "path": "src/coffee/data/Host.py",
-      "layer": "shared-data",
-      "responsibility": "dados do host",
-      "depends_on": [],
-      "used_by": [
-        "Config"
-      ],
+      "id": 10,
+      "statement": "O decorator @Component apenas registra e devolve a classe",
+      "verdict": "CONFIRMADO",
+      "detail": "__call__ faz registry.register(component) e return component — sem instanciação, sem wrap, sem injeção.",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "Host.py:1-8"
+        "Component.py:10-12"
       ]
     },
     {
-      "module": "coffee.core.domain.*",
-      "path": "src/coffee/core/domain/{interface,models,exceptions}",
-      "layer": "kernel",
-      "responsibility": "SystemModule (ABC), Dependency (model), InvalidCoffeeApplicationException",
-      "depends_on": [
-        "CoffeeComponent"
-      ],
-      "used_by": [
-        "registry",
-        "container",
-        "decorators",
-        "ModuleManager",
-        "main",
-        "SSHModule"
-      ],
+      "id": "7b",
+      "statement": "Dataclass + herança de CoffeeComponent",
+      "verdict": "EXISTE E FUNCIONA HOJE, COM PEGADINHA LATENTE",
+      "detail": "ModuleManager é @dataclass sobre CoffeeComponent: (a) ordem dos decorators — @Component (baixo) registra ANTES de @dataclass (alto) aplicar, mas dataclass muta a classe in-place → identidade preservada; (b) dataclass gera __init__ que NÃO chama __init__ da base — CoffeeComponent hoje NÃO tem __init__, então __post_init__ → super().__init__() resolve em ABC/object e funciona; (c) se a base ganhar __init__ no futuro, o __post_init__ manual de ModuleManager é o único elo (outras subclasses dataclass herdariam quebrado); (d) CoffeeComponent não tem campos anotados → nenhum campo herdado hoje.",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "SystemModule.py",
-        "Dependency.py",
-        "InvalidCoffeeApplicationException.py"
-      ]
-    },
-    {
-      "module": "coffee.modules.ssh.package",
-      "path": "src/coffee/modules/ssh/package.py",
-      "layer": "features",
-      "responsibility": "SSHModule (@Module)",
-      "depends_on": [
-        "Module decorator",
-        "SystemModule"
-      ],
-      "used_by": [],
-      "note": "sem discovery — ninguém importa coffee.modules.*",
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "package.py:1-26",
-        "grep"
+        "ModuleManager.py:10-16",
+        "CoffeeComponent.py:9 (sem __init__)",
+        "execução: c.get(ModuleManager) instancia OK"
       ]
     }
   ],
   "flows": [
     {
-      "name": "bootstrap (entry real)",
+      "name": "bootstrap async (entry atual, HEAD 628e772)",
       "steps": [
-        "python src/coffee/main.py (ou coffee.main:main)",
-        "→ decorator @CoffeeApplicationRuntime instanciado no import",
-        "→ asyncio.run(main()) → __call__ → _invokeAsync",
-        "→ init(): Config().build() → registry → CoffeeApplicationContainer(config)",
-        "→ func(self) — entry recebe runtime; lê app.getContainer().config",
-        "→ finally stop() → _container=None",
-        "→ Start() (fora do decorator)"
+        "import coffee.main → @CoffeeApplicationRuntime instancia o decorator guardando a coroutine main (main.py:16-17)",
+        "import de módulos com @Component/@Module → registro em tempo de import no registry (atributos de classe)",
+        "asyncio.run(main()) (main.py:33) → main() → Runtime.__call__ () (sync) → token=setApp(self) [Runtime:61] no contexto do caller",
+        "_invokeAsync retorna coroutine → asyncio.run cria Task copiando o contexto (com app setado)",
+        "init() [86] → Config().build() → registry singleton → CoffeeApplicationContainer(config) [27-32]",
+        "entrypoint: app.getContainer() (main.py:19) → lê config.Debug",
+        "finally: stop() [93] → _container=None — SEM resetApp → token permanece no contexto do caller",
+        "Start() (main.py:34) → ModuleManager().loadModules() → property container → getApp() OK (leak) → getContainer() → RuntimeError 'CoffeeApplicationRuntime is not initialized' → exit 1 (estado atual)"
       ],
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "main.py:13-31",
-        "CoffeeApplicationRuntime.py:47-88"
-      ],
-      "caveat": "funciona no HEAD; no working tree quebra no import (F-001)"
-    },
-    {
-      "name": "registro de componente",
-      "steps": [
-        "import do módulo com @Component",
-        "→ registry.register(component) → append Dependency em DefaultCoffeeRegistry.dependencies (class attr)",
-        "→ (WIP morto) closure init() chamaria component.initialize(app.getContainer())"
-      ],
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "Component.py:9-14",
-        "DefaultCoffeeRegistry.py:16-21"
+        "main.py:16-34",
+        "CoffeeApplicationRuntime.py:50-93",
+        "execução python -m coffee.main → traceback completo + EXITCODE=1"
       ]
     },
     {
-      "name": "registro de feature",
+      "name": "lifecycle sync",
       "steps": [
-        "import de modules/ssh/package.py (HOJE: por NINGUÉM)",
-        "→ @Module → registry.packageRegister → append em systemModules"
+        "@CoffeeApplicationRuntime sobre def síncrona → __call__ → setApp [61] → init [78] → func(self) [80] → finally resetApp [82] + stop [83]",
+        "pós-execução: ContextVar volta a None; _container=None"
       ],
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "Module.py:9-11"
-      ],
-      "gap": "sem discovery/loader de módulos"
+        "CoffeeApplicationRuntime.py:78-83",
+        "execução: return=ok, after_sync_reset_app_none=True, container_after_stop=None"
+      ]
     },
     {
-      "name": "resolução via container",
+      "name": "resolução via container (service-lookup)",
       "steps": [
-        "container.get(component)",
-        "→ DefaultCoffeeRegistry.get (identidade)",
-        "→ implementation() sem args",
-        "→ LookupError se ausente / TypeError se ctor exige args"
+        "componente: self.container → CoffeeApplicationContext.getApp() → .getContainer()",
+        "container.get(T) → DefaultCoffeeRegistry.get(T) (identidade classImpl is T) → T() sem args (instância NOVA por chamada)",
+        "LookupError 'Component not registered: X' se ausente; TypeError se ctor exige args (ex.: RuntimeCLI)"
       ],
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "CoffeeApplicationContainer.py:39-45"
+        "CoffeeComponent.py:10-15",
+        "CoffeeApplicationContainer.py:41-47",
+        "execução: i1 is not i2=True"
+      ]
+    },
+    {
+      "name": "registro (import time)",
+      "steps": [
+        "@Component → ComponentDecorator.__call__ → registry.register(classe) → append Dependency(id=uuid4, name, classImpl=classe) em DefaultCoffeeRegistry.dependencies (classe) → devolve a classe",
+        "@Module → ModuleDecorator.__call__ → registry.packageRegister → append em systemModules (classe) → devolve a classe",
+        "módulos de features (coffee.modules.*): ninguém os importa (sem discovery/loader)"
       ],
-      "note": "sem chamadores reais de get() hoje (main lê atributos direto)"
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "Component.py:10-12",
+        "Module.py:10-12",
+        "DefaultCoffeeRegistry.py:16-26",
+        "grep coffee.modules → 0 importadores"
+      ]
     }
   ],
   "findings": [
     {
       "id": "F-001",
-      "category": "working-tree-quebrado",
-      "statement": "O working tree está IMPORT-BROKEN: CoffeeComponent.py:8 `container = None | None` lança TypeError na criação da classe, derrubando 13/18 módulos testados (inclusive main, Runtime, Container, registry, decorators). HEAD (206f180) importa 10/10 OK.",
+      "category": "working-tree",
+      "statement": "O F-001 anterior (working tree import-broken por CoffeeComponent.py:8 `None | None`) está RESOLVIDO: o estado atual importa 39/39 módulos e compileall exit 0 (verificado nesta exploração). O WIP foi reescrito e commitado como 628e772 (CoffeeComponent property contextual + CoffeeApplicationContext).",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "traceback: CoffeeComponent.py line 8",
-        "git show HEAD:src/coffee/core/components/CoffeeComponent.py (versão limpa)",
-        "import test HEAD via git archive: 10/10 OK"
-      ],
-      "relevance_to_dip_task": "Qualquer validação de refactor de interfaces precisa decidir primeiro: preservar/corrigir o WIP do DEV ou partir do HEAD. QUESTION TO DEV."
-    },
-    {
-      "id": "F-002",
-      "category": "padrao-de-abstracao",
-      "statement": "Projeto usa exclusivamente ABC (3 existentes, 0 @abstractmethod, 0 Protocol). Padrão: contrato = classe ABC; impl = Default/nome concreto; domínio em core/domain/interface/, infra colocalizada com a impl.",
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "grep Protocol|abstractmethod|ABC em src/",
-        "SystemModule.py, CoffeeRegistry.py, CoffeeComponent.py"
-      ],
-      "relevance_to_dip_task": "Extração de ApplicationRuntime deve seguir o padrão ABC existente (ou DEV deve autorizar Protocol como novo padrão)."
-    },
-    {
-      "id": "F-003",
-      "category": "di-comportamento",
-      "statement": "container.get() instancia SEM argumentos; RuntimeCLI tem ctor com 2 args obrigatórios → get() incompatível com constructor injection; _create() (reflexão) é dead code e apenas REGISTRA parâmetros, nunca resolve.",
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "CoffeeApplicationContainer.py:39-45 (implementation())",
-        "CoffeeApplicationContainer.py:15-37 (_create sem chamadores)",
-        "CLI.py:11"
-      ],
-      "relevance_to_dip_task": "Contrato de instanciação precisa ser definido antes de extrair interfaces de consumidores."
-    },
-    {
-      "id": "F-004",
-      "category": "code-x-doc (ADR)",
-      "statement": "ADR 007 (ACCEPTED, DEV) exige ModuleManager com config: Config via constructor injection criado em Runtime.init() + getter no container — código atual não implementa (sem campo config, sem getModuleManager, loadModules sem configPath real).",
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "docs/decisions/007:131-137,145-150",
-        "ModuleManager.py:11-16"
-      ],
-      "relevance_to_dip_task": "Plano DIP deve alinhar-se à ADR 007 aceita (ou registrar divergência) — constructor injection é a direção já decidida pelo DEV."
-    },
-    {
-      "id": "F-005",
-      "category": "dip-gap",
-      "statement": "A abstração CoffeeRegistry não é usada no caminho de resolução: Container chama DefaultCoffeeRegistry.get diretamente; Runtime anota _registry: CoffeeRegistry mas só atribui e nunca lê.",
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "CoffeeApplicationContainer.py:40",
-        "CoffeeApplicationRuntime.py:14,25"
-      ],
-      "relevance_to_dip_task": "DIP parcialmente declarado (ABC existe) mas não percorrido — candidato a fechar junto com as novas interfaces."
-    },
-    {
-      "id": "F-006",
-      "category": "wip-nao-commitado",
-      "statement": "O WIP local adiciona: closure init() morta no decorator @Component + import decorator→runtime (Component.py:5,10-11); ModuleManager.loadModules referencia self.configPath inexistente (ModuleManager.py:15); tool.runner calculado e não usado (tool.py:21); main importa Config sem usar (main.py:1).",
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "git diff HEAD",
-        "leitura dos arquivos"
-      ],
-      "relevance_to_dip_task": "São exatamente as classes alvo da task DIP — o DEV tem trabalho em aberto nelas; coordenar antes de propor extrações."
-    },
-    {
-      "id": "F-007",
-      "category": "estado-git",
-      "statement": "Branch main @ 206f180, 7 arquivos modificados sem commit, nenhum untracked; relatório anterior (b9b15a8) estava STALE.",
-      "type": "FACT",
-      "confidence": "HIGH",
-      "evidence": [
-        "git status --short --branch",
-        "git log -5 --oneline",
-        "persist_artifact inspect → STALE"
+        "compileall exit 0",
+        "walk_packages 39/39",
+        "git diff CoffeeComponent.py"
       ]
     },
     {
-      "id": "F-008",
-      "category": "callers-vazios",
-      "statement": "RuntimeCLI/CLI.py não tem nenhum consumidor; Container.get/_create/setConfig e Runtime.setConfig também não têm chamadores externos; o único caminho executado hoje é main → Runtime.__call__ → init → entry.",
+      "id": "F-011",
+      "category": "lifecycle-context",
+      "statement": "Assimetria de reset do contexto: rota sync chama resetApp(token) no finally (L82); rota async (_invokeAsync) NÃO chama resetApp (L92-93) e a factory-form seta token no decorate sem nunca resetar (L61→67). Efeito verificado: leak do ContextVar → comportamento pós-lifecycle divergente entre as rotas (async deixa o app 'vivo' no contexto do caller).",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "grep RuntimeCLI|_create|setConfig em src/ (só definições)",
-        "main.py:16-17 lê atributos diretamente"
+        "CoffeeApplicationRuntime.py:61,63-67,81-83,92-93",
+        "execuções: sync reseta; async não (Start() acessa app após asyncio.run); factory não reseta"
       ],
-      "relevance_to_dip_task": "Baixo número de callers reduz o custo de extração de interfaces — mas nenhum contrato é exercitado por testes/callers reais."
+      "note": "Registro contextual de arquitetura/estado — não é verdict de code review; análise especializada pertence ao reviewer/design owner. O código foi commitado como 628e772 durante a exploração; permanece a questão U-001 sobre a intenção do reset ausente."
     },
     {
-      "id": "F-009",
-      "category": "estado-runtime",
-      "statement": "Runtime mistura 3 estilos: classmethods com estado em atributos de classe (init/getContainer/stop), __call__/_invokeAsync como métodos de instância, e papel de decorator+composition root — candidato natural a interface, mas o estado class-level complica substituição/testabilidade.",
-      "type": "INFERENCE",
-      "confidence": "MEDIUM",
-      "evidence": [
-        "CoffeeApplicationRuntime.py:13-14 (class attrs), 19-45 (classmethods), 47-88 (instance methods)"
-      ],
-      "relevance_to_dip_task": "Extração de ApplicationRuntime deve decidir se o contrato é sobre a instância-decorator, a classe-estado, ou ambos."
-    },
-    {
-      "id": "F-010",
-      "category": "contexto-menor",
-      "statement": "Host.username usa os.getlogin() avaliado no class body (pode falhar sem login); Dependency.id usa uuid4() como default de class body (id compartilhado entre instâncias criadas sem id).",
+      "id": "F-012",
+      "category": "lifecycle-context",
+      "statement": "init() fica FORA do try nas duas rotas (L78 e L86): se init() lançar, stop() não roda (assimetria já registrada em doc.md §4.3). Além disso, setApp (L61) ocorre ANTES do try (L79): se init() lançar na rota sync, o token também fica sem reset.",
       "type": "FACT",
       "confidence": "HIGH",
       "evidence": [
-        "Host.py:7",
-        "Dependency.py:6"
-      ],
-      "relevance_to_dip_task": "contexto — não bloqueia DIP, mas afeta fábricas/getters que criem esses objetos"
+        "CoffeeApplicationRuntime.py:61,78-79,86-87",
+        "docs/doc.md:195 (já reconhece a assimetria de init fora do try)"
+      ]
+    },
+    {
+      "id": "F-013",
+      "category": "di-gap",
+      "statement": "O caminho de resolução bypassa a abstração: CoffeeApplicationContainer.get chama DefaultCoffeeRegistry.get (classe concreta, L42) em vez do singleton registry ou do ABC; Runtime._registry é escrito (L28) e nunca lido. ADR 007 (ACCEPTED) prevê constructor injection do ModuleManager criado em init() — o código atual (628e772) faz ModuleManager puxar config via property container (service-locator contextual em L20-22) em vez de receber Config no construtor.",
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "CoffeeApplicationContainer.py:42",
+        "CoffeeApplicationRuntime.py:28",
+        "ModuleManager.py:20-24",
+        "docs/decisions/007:131-137"
+      ]
+    },
+    {
+      "id": "F-014",
+      "category": "code-x-doc",
+      "statement": "O mecanismo ContextVar (CoffeeApplicationContext, setApp/getApp/resetApp) é inteiramente NÃO DOCUMENTADO: nenhum arquivo em docs/, .agents/ ou AGENTS.md o menciona. doc.md §4.3 descreve o decorator sem as etapas de contexto; runtime.md §5.3 descreve apenas a injeção por parâmetro da instância no entrypoint. O código andou à frente da documentação (mecanismo commitado em 628e772, docs não sincronizadas).",
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "rg contextvar|setApp|getApp|resetApp|CoffeeApplicationContext docs/ .agents/ → 0 matches",
+        "docs/doc.md:181-196",
+        "docs/architecture/runtime.md:256-280"
+      ]
+    },
+    {
+      "id": "F-015",
+      "category": "estado",
+      "statement": "Boot termina com exit 1 desde 628e772 (HEAD) — Start() → RuntimeError 'CoffeeApplicationRuntime is not initialized'; docs (doc.md §4.1/§6.2), .agents/state.json e docs/ai/STATE.md registram 'boot exit 0', comportamento válido apenas para commits ≤9ddf051 (main.py sem ModuleManager em Start()).",
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "execução python -m coffee.main → EXITCODE=1",
+        "git diff main.py",
+        "docs/doc.md:144",
+        ".agents/state.json validationStatus"
+      ]
+    },
+    {
+      "id": "F-016",
+      "category": "concurrency",
+      "statement": "Estado compartilhado mutável sem sincronização em 3 camadas (Runtime classe, registry classe, container instância única) + mutação global de sys.path; ContextVar isola só a referência do app. Hoje sem threads novas no fluxo principal (asyncio single-thread) — risco latente, não observado.",
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "Runtime:16-17",
+        "DefaultCoffeeRegistry:13-14",
+        "Container:14-15",
+        "rg threading|lock → 0"
+      ]
+    },
+    {
+      "id": "F-017",
+      "category": "dead-code",
+      "statement": "Mortos/sem callers: CoffeeApplicationContainer._create (L17-39), Runtime._registry (escrito/nunca lido), Runtime.setConfig (sem chamadores), container.systemModules (sem escritor/leitor), RuntimeCLI inteiro (sem importador).",
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "grep _create|_registry|setConfig|systemModules|RuntimeCLI em src/ → só definições"
+      ]
+    },
+    {
+      "id": "F-018",
+      "category": "entrypoint",
+      "statement": "pyproject aponta para coffee.cli.main:main (inexistente) — segue aberto como decisão do DEV (TODO:14).",
+      "type": "FACT",
+      "confidence": "HIGH",
+      "evidence": [
+        "pyproject.toml",
+        "docs/TODO.md:14"
+      ]
     }
   ],
   "tests": {
     "framework": "nenhum",
     "test_files": 0,
     "ci": false,
-    "validation_available_today": [
-      "python -m compileall -f src",
-      "PYTHONPATH=src python -c 'import <módulo>' (por módulo)",
-      "git archive HEAD + import test (separar HEAD de working tree)"
+    "validation_used_here": [
+      "python -m compileall -q -f src → exit 0",
+      "walk_packages import check → 39/39 OK",
+      "execução controlada do boot (python -m coffee.main) → comportamento do lifecycle async",
+      "scripts sintéticos (read-only) para sync path, factory form, erros e resolução do container"
     ],
     "type": "FACT",
     "confidence": "HIGH"
   },
   "documentation": {
-    "canonical": "docs/doc.md v0.3.2 (DECISION 2026-09-28: doc.md prevalece)",
-    "dip_specific": [
+    "map": {
+      "docs/doc.md": "doc técnica canônica (v0.3.2; DECISION 2026-09-28: doc.md prevalece) — §4.3 Runtime, §4.4 Container, §4.5 decorators/registry, §6 boot flow",
+      "docs/architecture/runtime.md": "conceituação da fronteira de lifecycle — §5.3 contexto, §5.4 lifecycle, §7 snapshot DESATUALIZADO (banner), §8 uso, §9 IoC, §10 1 Runtime→1 Container, §11 limites",
+      "docs/architecture/components-aop.md": "espelho da spec de componentes/registry/DI",
+      ".agents/specs/coffee-components-aop.md": "DECISION DEV 2026-09-25 (DIP + AOP declarativo) + tabela 'Estado no código' (atualizada 2026-10-01)",
+      "docs/decisions/001": "ACCEPTED — Runtime como fronteira de lifecycle (try/finally garantir stop)",
+      "docs/decisions/006": "ACCEPTED — decorators sem AOP tradicional",
+      "docs/decisions/007": "ACCEPTED — ModuleManager via constructor injection no composition root",
+      "docs/ai/STATE.md + .agents/state.json": "estado operacional (claim boot exit 0)",
+      ".agents/harness.md": "governança — §35 Config/Container/Boot, §41 Documentation Map, §45 Component Model",
+      "docs/TODO.md": "trabalho pendente (entrypoint :14, reviews :57-59, drift @Component :61)",
+      "docs/specs/coffee-cli-v1.md": "spec V1 (style guide — a mensagem em :86 é exemplo ilustrativo, não claim do código)"
+    },
+    "conflicts_code_vs_docs": [
       {
-        ".agents/specs/coffee-components-aop.md": "DECISION DEV 2026-09-25 — define DIP como princípio; espelho docs/architecture/components-aop.md; §'Estado no código' atualizado 2026-10-01 (reconhece _create dead e get() sem injeção)"
+        "id": "C-001",
+        "conflict": "CÓDIGO tem CoffeeApplicationContext/ContextVar (628e772); NENHUM doc menciona o mecanismo — doc.md §4.3 descreve o fluxo do decorator sem setApp/resetApp.",
+        "code_side": "src/coffee/core/runtime/CoffeeApplicationContext.py (novo), Runtime:61,82",
+        "doc_side": "docs/doc.md:181-196; docs/architecture/runtime.md:256-280",
+        "question": "O ContextVar é a intenção arquitetural oficial (virar doc/ADR) ou rascunho? DOCUMENTAR após confirmação do DEV.",
+        "type": "FACT",
+        "confidence": "HIGH"
       },
       {
-        "docs/decisions/007-modulemanager-dependency-injection.md": "ADR ACCEPTED — constructor injection via composition root; regra: serviço RECEBE contexto, entrypoint SÓ CONSUME, Runtime MONTA lifecycle (paths no arquivo ainda pré-rename: contener/, CoffeAplication)"
+        "id": "C-002",
+        "conflict": "ADR 007 (ACCEPTED) exige ModuleManager com config: Config via CONSTRUCTOR injection criado em Runtime.init(); código atual (628e772) usa service-locator contextual (property container → getConfig) e init() não cria ModuleManager.",
+        "code_side": "ModuleManager.py:15-24; Runtime:22-32",
+        "doc_side": "docs/decisions/007:131-137,145-150",
+        "question": "ADR 007 continua sendo a direção, ou o padrão mudou para acesso contextual via container?",
+        "type": "FACT",
+        "confidence": "HIGH"
       },
       {
-        "docs/architecture/runtime.md": "§9 IoC (runtime entrega contexto ao entrypoint), §10 instâncias compartilhadas por ciclo de vida, §11 runtime deve ficar pequeno; §7/§8 marcados como snapshot stale"
+        "id": "C-003",
+        "conflict": "Spec/espelho descrevem CoffeeComponent como 'ABC + initialize()' — desde 628e772 initialize() e __init__ foram removidos, substituídos por property container + get(component).",
+        "code_side": "CoffeeComponent.py:9-15 (628e772)",
+        "doc_side": ".agents/specs/coffee-components-aop.md:106; docs/architecture/components-aop.md:105",
+        "question": "Docs ainda descrevem o estado pré-628e772 — atualizar as tabelas 'Estado no código'.",
+        "type": "FACT",
+        "confidence": "HIGH"
       },
       {
-        "docs/decisions/001-runtime-lifecycle-boundary.md / 006": "fronteira de lifecycle; contrato de plugin (PROPOSAL, aberto)"
+        "id": "C-004",
+        "conflict": "docs/doc.md:144, .agents/state.json e docs/ai/STATE.md registram 'boot exit 0'; desde 628e772 (HEAD) o boot sai com exit 1 (RuntimeError pós-lifecycle em Start()).",
+        "code_side": "execução python -m coffee.main → EXITCODE=1 (628e772)",
+        "doc_side": "docs/doc.md:144; .agents/state.json validationStatus; docs/ai/STATE.md",
+        "question": "Docs refletem commits ≤9ddf051; 628e772 alterou o comportamento — sincronizar docs com o HEAD atual.",
+        "type": "FACT",
+        "confidence": "HIGH"
+      },
+      {
+        "id": "C-005",
+        "conflict": "runtime.md §7 tabela diz 'Decorator NÃO implementado / try-finally Não existe' — já reconciliado por BANNER de snapshot (STATUS 2026-10-01) que aponta para doc.md; conteúdo histórico mantido.",
+        "code_side": "Runtime:50-93 (decorator funcional)",
+        "doc_side": "docs/architecture/runtime.md:370,419-428",
+        "question": "sem ação — já sinalizado pelo próprio doc.",
+        "type": "FACT",
+        "confidence": "HIGH"
+      },
+      {
+        "id": "C-006",
+        "conflict": "runtime.md:318/ADR 001: 'stop() deve rodar mesmo com exceção' — parcialmente: init() fora do try (doc.md:195 já reconhece); E na rota async falta resetApp (novo, não documentado).",
+        "code_side": "Runtime:78-79,86-87,92-93",
+        "doc_side": "docs/architecture/runtime.md:318; docs/decisions/001:22,31",
+        "question": "assimetria conhecida para init; o gap de resetApp é novo — alinhar contrato do lifecycle.",
+        "type": "FACT",
+        "confidence": "HIGH"
+      },
+      {
+        "id": "C-007",
+        "conflict": "runtime.md §10 '1 Runtime → 1 Container' × estado class-level (_container compartilhado por instâncias) — já registrado em doc.md:207 como divergência de modelo.",
+        "code_side": "Runtime:16,30,47",
+        "doc_side": "docs/architecture/runtime.md:540-550; docs/doc.md:207",
+        "question": "modelo oficial: container por instância ou por processo? — inalterado desde registro anterior.",
+        "type": "FACT",
+        "confidence": "HIGH"
       }
     ],
-    "freshness": {
-      "docs/doc.md": "v0.3.2 sincronizada em 206f180 (paths pós-restructure + boot exit 0); anterior ao WIP não commitado atual (F-001/F-006)",
-      ".agents/state.json": "atualizado 2026-10-01 — descreve boot funcional (HEAD), não captura o WIP quebrado atual",
-      "docs/TODO.md": "itens [H] abertos: framework CLI, contrato de plugin (ADR006), protocolo C++ (ADR004), formato de config, entrypoint (:14); [S] reviews de Runtime/Container/ModuleManager",
-      "ADR 007": "conteúdo aceito e relevante; paths históricos (pré-rename 2026-09-28) — ler como intenção, não como paths atuais"
-    },
     "type": "FACT",
-    "confidence": "MEDIUM"
+    "confidence": "HIGH"
   },
   "state": {
-    "project_phase": "skeleton em evolução (0.1.0, doc.md 0.3.2); boot funcional no HEAD; WIP local não commitado quebra imports",
-    "dip_readiness": "ALTA em termos de escopo (29 arquivos, 0 testes, poucos callers) — MAS requer decisão prévia do DEV sobre (a) destino do WIP quebrado, (b) estilo de abstração (ABC vs Protocol), (c) local/nomenclatura das interfaces, (d) ordem: fechar ADR007 primeiro ou junto",
-    "real_blockers": [
-      "F-001 working tree import-broken",
-      "F-004 ADR 007 não implementado (direção já decidida)",
-      "F-003 get() incompatível com ctor injection"
-    ],
+    "project_phase": "skeleton em evolução (0.1.0, doc.md 0.3.2); interfaces ABC criadas (7508235); ContextVar-based context delivery commitado em 628e772 durante esta exploração; árvore limpa fora de .agents/",
+    "health": "imports 39/39 OK; compileall 0; sem testes/CI; boot exit 1 no HEAD 628e772 (exit 0 apenas ≤9ddf051)",
+    "context_arch_state": "Mecanismo ContextVar funcional mas incompleto (reset ausente na rota async/factory) e 100% não documentado",
     "type": "FACT",
     "confidence": "HIGH"
   },
   "uncertainties": [
     {
       "id": "U-001",
-      "statement": "WIP não commitado (7 arquivos, incl. breaking CoffeeComponent.py:8) é trabalho ativo do DEV, resto de agente, ou para descartar?",
+      "statement": "A ausência de resetApp na rota async e no decorate da factory-form é bug ou intenção (contexto 'vivo' até o fim do processo)? O código foi commitado como 628e772 durante a exploração, mas a decisão sobre o comportamento correto não está registrada em nenhum doc/ADR.",
       "type": "UNKNOWN",
       "action": "QUESTION TO DEV"
     },
     {
       "id": "U-002",
-      "statement": "Estilo de abstração para as novas interfaces: ABC (padrão existente) ou typing.Protocol (não usado hoje)?",
+      "statement": "O mecanismo ContextVar como entrega de contexto foi DECIDIDO pelo DEV? Não existe ADR/spec/doc que o cubra — spec coffee-components-aop.md e ADR 001/007 descrevem outros mecanismos (injeção por parâmetro no entrypoint, constructor injection).",
       "type": "UNKNOWN",
       "action": "QUESTION TO DEV"
     },
     {
       "id": "U-003",
-      "statement": "Onde vivem as interfaces de infra (ex.: ApplicationRuntime): core/runtime/interface/? core/domain/interface/ (só domínio hoje)? colocalizado como CoffeeRegistry?",
+      "statement": "Destino do entrypoint pyproject (coffee.cli.main:main inexistente) — decisão pendente (TODO:14).",
       "type": "UNKNOWN",
-      "action": "QUESTION TO DEV"
+      "action": "DECISION DO DEV"
     },
     {
       "id": "U-004",
-      "statement": "Nomenclatura: sem prefixo I/Abstract no projeto — ApplicationRuntime vs IApplicationRuntime vs CoffeeRuntimeInterface?",
+      "statement": "O WIP observado no início da exploração foi commitado como 628e772 durante a execução — trabalho do DEV em andamento; permanece a confirmação de intenção (U-001 resetApp; U-002 status de decisão do ContextVar). Todo trabalho posterior sobre Runtime/Context deve partir de 628e772.",
       "type": "UNKNOWN",
       "action": "QUESTION TO DEV"
     },
     {
       "id": "U-005",
-      "statement": "Camada config/ e data/ na regra de direção (core↔config) — não declarada no harness (arrasto do relatório anterior)",
+      "statement": "harness §35 descreve boot conceptual 'Create Container → Create Context'; o código seta o Context (setApp) ANTES de criar o container — se 'Context' do harness for este ContextVar, a ordem diverge; se for outra coisa (Context Engine §32), não há conflito. Significado não determinável só pelo código.",
       "type": "UNKNOWN",
       "action": "QUESTION TO DEV"
     },
     {
       "id": "U-006",
-      "statement": "Destino do entrypoint (coffee.cli.main:main inexistente vs coffee.main:main)",
+      "statement": "Modelo de instância do container: 1 container por processo (class-level, atual) vs 1 container por instância de Runtime (runtime.md §10) — divergência já registrada (doc.md:207), permanece sem decisão.",
       "type": "UNKNOWN",
-      "action": "DECISION DO DEV (docs/TODO.md:14)"
+      "action": "QUESTION TO DEV"
     }
   ],
   "validation_commands": [
-    "git status --short --branch; git rev-parse --short HEAD",
-    "$env:PYTHONPATH=(Resolve-Path src); .venv\\Scripts\\python.exe -c 'import <m>'",
-    "git archive HEAD src | tar -x -C <tmp>  (validar HEAD separado do working tree)",
-    "python -m compileall -f src"
+    "git status --short; git log --oneline -5",
+    "$env:PYTHONPATH=(Resolve-Path src); .venv\\Scripts\\python.exe -m compileall -q -f src",
+    ".venv\\Scripts\\python.exe (walk_packages import check 39/39)",
+    "python <knowledge-persistence>/scripts/persist_artifact.py inspect --artifact .agents/protocol/docs/codebase-explorer.json --schema <harness>/schemas/codebase-explorer-report.json"
   ]
 }

@@ -1,6 +1,6 @@
 # Coffee CLI — Estado Operacional
 
-**Última atualização:** 2026-10-01  
+**Última atualização:** 2026-10-03  
 **Versão do projeto:** 0.1.0  
 **Branch atual:** main
 
@@ -8,13 +8,13 @@
 
 ## Modo Atual
 
-**BUILD** (documentação sincronizada com o código; imports saneados; boot funcional)
+**BUILD** (documentação sincronizada com o código; imports saneados; consolidação da arquitetura Runtime/Context/DI)
 
 ---
 
 ## Objetivo Atual
 
-Sincronização documental concluída (doc.md v0.3.2, runtime.md, components-aop.md, specs, TODO) e task de saneamento de imports finalizada (61/61 imports resolvem; 0 paths antigos; `compileall` exit 0; 1 fix). Boot verificado: `python src/coffee/main.py` → exit 0. Próximo foco: decisões abertas do DEV (entrypoint, drift `packageRegister`) e avanço para V1 (framework CLI, ADRs 008/009).
+Consolidação arquitetural concluída (2026-10-03): Application Runtime + Application Context (ContextVar) + DI + Components documentados — `runtime.md` §13–§17 (conceitos, token, concorrência, erros, invariantes), `doc.md` v0.3.3 (§4.3/§4.10/§6.2/§17/§18), `components-aop.md` §5.1–§5.5, invariantes em `AGENTS.md`. **Boot re-verificado: exit 1 desde `628e772`** (gap `resetApp` na rota async — exit 0 valia até `9ddf051`). Próximo foco: decisões abertas do DEV (entrypoint, drift `packageRegister`, gap `resetApp` async, formalização do ContextVar/U-002).
 
 ---
 
@@ -96,7 +96,17 @@ Sincronização documental concluída (doc.md v0.3.2, runtime.md, components-aop
 
 ## Handoff
 
-> **Estado (2026-10-01):** doc.md em **v0.3.2** sincronizada com o código (paths pós-restructure, status de imports, boot funcional após reescrita de `Config.build()` pelo DEV — exit 0 verificado por execução). Task de saneamento de imports concluída (61/61 resolvem, 0 paths antigos, 0 ciclos, 0 core→modules, 1 fix `abstractmethod`). Relatório global do explorer em `.agents/protocol/docs/codebase-explorer.json` (HEAD `b9b15a8`).
+> **Estado (2026-10-03):** consolidação da arquitetura **Runtime + Application Context + DI + Components** — `doc.md` v0.3.3 (§4.1/§4.3/§4.10/§6.2/§17.10-12/§18.1), `runtime.md` (§5.3/§5.4 + novas §13–§17), `components-aop.md` (tabela + §5.1–§5.5), espelho `.agents/specs/coffee-components-aop.md`, invariantes em `AGENTS.md`. Base: relatório do `codebase-explorer` (`628e772`) + task context `runtime-context-di-components-task-context.json`. **Boot exit 1 confirmado por execução** (leak `resetApp` rota async).
+>
+> **Decisões/drifts abertos para o DEV:** `TODO:14` (entrypoint), `TODO:53` (drift `packageRegister` × `register`), `TODO:54` (placeholder `Start()`); **novos:** U-001 (resetApp ausente async/factory = bug ou intenção?), U-002 (ContextVar formalizado como mecanismo oficial? sem ADR), C-002 (ADR 007 constructor injection × service-locator contextual), modelo de instância do container (class-level).
+>
+> **Arquivos atualizados em 2026-10-03:**
+> - `docs/doc.md` (v0.3.3), `docs/architecture/runtime.md`, `docs/architecture/components-aop.md`
+> - `.agents/specs/coffee-components-aop.md`, `AGENTS.md` (invariantes)
+> - `docs/ai/STATE.md` (este arquivo), `.agents/state.json`
+> - cache: `.agents/protocol/docs/codebase-explorer.json` + task context (pelo `codebase-explorer`)
+
+> **Estado (2026-10-01):** doc.md em **v0.3.2** sincronizada com o código (paths pós-restructure, status de imports, boot funcional após reescrita de `Config.build()` pelo DEV — exit 0 verificado por execução na época; **exit 0 válido apenas até `9ddf051`**). Task de saneamento de imports concluída (61/61 resolvem, 0 paths antigos, 0 ciclos, 0 core→modules, 1 fix `abstractmethod`). Relatório global do explorer em `.agents/protocol/docs/codebase-explorer.json` (HEAD `b9b15a8`).
 >
 > **Decisões/drifts abertos para o DEV:** `TODO:14` (entrypoint), `TODO:53` (drift `packageRegister` × `register`), `TODO:54` (placeholder `Start()`).
 >

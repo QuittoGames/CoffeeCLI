@@ -1,9 +1,11 @@
 # CoffeeApplicationRuntime — Conceituação e Uso
 
-**Status:** PROPOSAL (conceituação validada pelo DEV; implementação atual é parcial — ver §7)  
+**Status:** PROPOSAL (conceituação validada pelo DEV) + FACT onde verificado por execução — **atualizado em 2026-10-03** (Application Context/ContextVar documentado nas §13–§17; comportamento real do lifecycle nas §5.3/§5.4; ver também `docs/doc.md` §4.3/§4.10 — doc.md prevalece)  
 **Código-fonte:**
 - `src/coffee/core/runtime/CoffeeApplicationRuntime.py`
+- `src/coffee/core/runtime/CoffeeApplicationContext.py`
 - `src/coffee/core/container/CoffeeApplicationContainer.py`
+- `src/coffee/core/components/CoffeeComponent.py`
 
 > **Paths atualizados em 2026-10-01** (antes: `CoffeAplicationRuntime.py`, `runtime/contener/` — typos corrigidos no rename de 2026-09-28 e estrutura movida no restructure `3d47da8`; ver `docs/doc.md` §3.2/§16.10).
 
@@ -23,6 +25,11 @@
 10. [Instâncias compartilhadas](#10-instâncias-compartilhadas)
 11. [Escopo e limites](#11-escopo-e-limites)
 12. [Manutenção e evolução](#12-manutenção-e-evolução)
+13. [Application Context (ContextVar)](#13-application-context-contextvar)
+14. [Token do ContextVar](#14-token-do-contextvar)
+15. [ContextVar e concorrência](#15-contextvar-e-concorrência)
+16. [Erros comuns](#16-erros-comuns)
+17. [Invariantes arquiteturais](#17-invariantes-arquiteturais)
 
 ---
 
@@ -255,29 +262,39 @@ stop()
 
 ### 5.3 Disponibilização do contexto
 
-Depois do `init()`, o ponto de entrada recebe o contexto — sem conhecer os detalhes de construção:
+Existem **dois caminhos** de acesso ao contexto — ambos resolvem para a mesma instância de `CoffeeApplicationRuntime`:
+
+**Caminho 1 — parâmetro do ponto de entrada** (o entrypoint recebe `app` explicitamente):
 
 ```python
-@CoffeeApplicationRuntime()
+@CoffeeApplicationRuntime
 async def main(app):
     container = app.getContainer()
     config = container.getConfig()
 ```
 
-```text
-Runtime
-   │
-   │ injeta
-   ▼
-App / Entry Point
-   │
-   ▼
-Container
-   │
-   ├── Config
-   ├── módulos
-   └── serviços
+**Caminho 2 — Application Context** (componentes acessam sem receber `app`):
+
+```python
+@Component
+class ModuleManager(CoffeeComponent):
+    def loadModules(self):
+        config = self.container.getConfig()   # via CoffeeApplicationContext
 ```
+
+```text
+CoffeeComponent.container (property)
+        ↓
+CoffeeApplicationContext.getApp()      ← ContextVar
+        ↓
+CoffeeApplicationRuntime
+        ↓
+getContainer()
+        ↓
+ApplicationContainer
+```
+
+Documentação detalhada do caminho 2 em [§13](#13-application-context-contextvar).
 
 ### 5.4 Lifecycle
 
@@ -295,27 +312,39 @@ shutdown          → stop()      (encerra recursos)
 
 Regras:
 
-- `__init__` **só** cria o objeto runtime (container = `None`).
-- A subida real da aplicação acontece em `init()` (futuramente talvez `start()`).
+- `__init__` **só** cria o objeto runtime (guarda o `func` do decorator).
+- A subida real da aplicação acontece em `init()` (composition root: `Config` → `registry` → `Container`).
 - O encerramento acontece em `stop()`.
 
-Com decorator, o lifecycle é automático:
+Com o decorator, o lifecycle real (**FACT — código atual, verificado por execução**) é:
 
 ```python
-# O que se escreve:
-@CoffeeApplicationRuntime()
-async def main(app):
-    ...
-
-# O que acontece conceitualmente:
-runtime.init()
+# Caminho síncrono (CoffeeApplicationRuntime.__call__):
+token = CoffeeApplicationContext.setApp(self)   # ANTES de init
+self.init()
 try:
-    await main(runtime)
+    return func(self)
 finally:
-    runtime.stop()
+    CoffeeApplicationContext.resetApp(token)    # restaura estado anterior
+    self.stop()                                 # libera o container
+
+# Caminho assíncrono (_invokeAsync):
+token = CoffeeApplicationContext.setApp(self)   # setApp ocorre em __call__
+self.init()
+try:
+    return await func(self)
+finally:
+    self.stop()                                 # ⚠ GAP: sem resetApp(token)
 ```
 
-O `try/finally` é parte do contrato: **`stop()` deve rodar mesmo se a aplicação lançar exceção**.
+Ordem crítica: **`setApp()` precisa acontecer antes de qualquer componente acessar `CoffeeApplicationContext.getApp()`** — e de fato acontece antes de `init()` e antes do entrypoint nas duas rotas (Runtime:61 × 78/86).
+
+> **GAPS CONHECIDOS (FACT, 2026-10-03 — registrados, não corrigidos):**
+> 1. A rota **assíncrona não chama `resetApp(token)`** no `finally` (Runtime:92-93) — o token vaza; verificado por execução: o boot atual (`python -m coffee.main`) termina com **exit 1** (`Start()` → `RuntimeError: CoffeeApplicationRuntime is not initialized`), porque o ContextVar ainda aponta para o app (leak) após `stop()` ter liberado o container.
+> 2. A forma **factory** `@CoffeeApplicationRuntime()` chama `setApp` na decoração (Runtime:61) e **nunca reseta** aquele token.
+> 3. `init()` está **fora** do `try` nas duas rotas — se `init()` falhar, `stop()` não roda.
+>
+> O modelo conceitual correto permanece: `init → setApp → entrypoint → resetApp → stop`. Correção dos gaps requer decisão do DEV (U-001 do task context do explorer).
 
 ---
 
@@ -473,7 +502,7 @@ finally:
     runtime.stop()
 ```
 
-> **STATUS 2026-10-01 (FACT — por execução):** o decorator **funciona** — `@CoffeeApplicationRuntime` (sem parênteses também é aceito) chama `_invokeAsync` → `init()` → `await func(self)` → `finally stop()`; `python src/coffee/main.py` completa com exit 0 (doc.md §4.1/§6.2 prevalecem). A tabela de "lacunas" da §7 acima é histórica.
+> **STATUS 2026-10-03 (FACT — por execução):** o decorator **funciona** — `@CoffeeApplicationRuntime` (sem parênteses também é aceito) chama `_invokeAsync` → `init()` → `await func(self)` → `finally stop()`; **porém, desde `628e772`, o boot termina com exit 1** (`Start()` → `RuntimeError: CoffeeApplicationRuntime is not initialized`) porque a rota assíncrona **não chama `resetApp(token)`** (leak do ContextVar — ver §5.4/§16.2). Até `9ddf051` o boot era exit 0 (afirmação das docs anteriores).
 
 ### 8.3 Pontos de entrada previstos no código
 
@@ -636,6 +665,8 @@ Se crescer nessa direção, sinal de que a responsabilidade errada está no luga
 
 ### Próximos passos prováveis (PROPOSAL)
 
+> **STATUS 2026-10-03:** itens 2 (`__call__`), 3 (com/sem parênteses) e 7 (`getContainer`) **já implementados** no código; item 1 (ADR 007) segue divergente do código (service-locator contextual — `doc.md` §17.11). **Novo item prioritário:** corrigir/decidir o gap `resetApp` da rota async/factory (§5.4, U-001).
+
 ```text
 1. [ACEITO · ADR 007] Remover decorator do ModuleManager; injetar Config
    no construtor; criar instância dentro de Runtime.init();
@@ -652,4 +683,267 @@ Se crescer nessa direção, sinal de que a responsabilidade errada está no luga
 
 ---
 
-> **Resumo:** `CoffeeApplicationRuntime` é a fronteira de lifecycle do Coffee — inspirada no *around advice* do AOP, mas reduzida a um único papel: **inicializar, entregar contexto e encerrar**. `Config` define, `Container` disponibiliza, `Runtime` controla, `Service` executa.
+## 13. Application Context (ContextVar)
+
+> **Status:** FACT (código verificado em `628e772`, 2026-10-03) · sem ADR específico (U-002 — formalização como mecanismo oficial é decisão aberta do DEV).
+
+### 13.1 Problema
+
+Sem contexto, todo componente precisaria receber `app`/`container` explicitamente:
+
+```python
+ModuleManager(container).loadModules()   # propagação manual de dependência
+```
+
+O `CoffeeApplicationContext` permite que componentes acessem **a aplicação atual do contexto de execução** sem recebê-la por parâmetro.
+
+### 13.2 Conceito central
+
+```python
+_current_app: ContextVar["CoffeeApplicationRuntime | None"] = ContextVar(
+    "coffee_current_app", default=None,
+)
+```
+
+```text
+ContextVar
+    │
+    └──────────────→ CoffeeApplicationRuntime   (referência, NÃO cópia)
+```
+
+Pontos que a documentação deve preservar:
+
+- `ContextVar` **não** é uma variável global comum e **não** é o próprio Application.
+- É um mecanismo **contextual**: mantém um valor associado ao contexto de execução atual.
+- O valor armazenado é uma **referência para uma instância de `CoffeeApplicationRuntime`** — o Runtime continua sendo uma instância normal; não existe cópia dentro do ContextVar.
+- **Não** significa "alocar o App na heap": o objeto Runtime é gerenciado pela memória do Python como qualquer objeto; o ContextVar só mantém a referência contextual.
+
+```text
+Heap / objetos Python
+        │
+        └── CoffeeApplicationRuntime
+                ▲
+                │ referência
+                │
+           ContextVar
+```
+
+### 13.3 Responsabilidade do CoffeeApplicationContext
+
+A classe (`core/runtime/CoffeeApplicationContext.py`) existe **principalmente para encapsular o acesso ao ContextVar** — sem estado próprio, só `staticmethods`:
+
+```python
+class CoffeeApplicationContext:
+    @staticmethod
+    def setApp(app):   return _current_app.set(app)      # retorna token
+
+    @staticmethod
+    def getApp():
+        app = _current_app.get()
+        if app is None:
+            raise RuntimeError("CoffeeApplicationRuntime is not running")
+        return app
+
+    @staticmethod
+    def resetApp(token): _current_app.reset(token)
+```
+
+**Regra:** o restante do sistema **não** manipula `_current_app` diretamente — sempre via `setApp`/`getApp`/`resetApp` (verificado: `_current_app` só é acessado neste arquivo).
+
+### 13.4 Singleton vs instância normal
+
+O `CoffeeApplicationRuntime` **não** é um singleton clássico:
+
+```text
+app = CoffeeApplicationRuntime(...)     ← instância comum
+Context
+  ↓
+current App                              ← qual instância está ativa NESTE contexto
+  ↓
+CoffeeApplicationRuntime instance
+```
+
+"Application globalmente acessível" **não** significa "Application implementada como singleton estático" — o mecanismo contextual define apenas **qual** instância está ativa no contexto atual.
+
+> **Qualificação (FACT):** o ciclo (`_container`/`_registry` e `init`/`getContainer`/`stop`) é implementado em **atributos/métodos de classe** (contrato ABC `ApplicationRuntime`) → todas as instâncias compartilham o mesmo container. Isso é singleton-*like* no estado do ciclo, mas **não** é um singleton estático de acesso global direto (detalhe em `docs/doc.md` §4.3).
+
+### 13.5 Relação com Registry/Container
+
+```text
+CoffeeComponent
+      ↓
+CoffeeApplicationContext.getApp()
+      ↓
+CoffeeApplicationRuntime
+      ↓
+getContainer()
+      ↓
+ApplicationContainer          ← abstração (Dependency Inversion)
+      ↑
+CoffeeApplicationContainer    ← implementação concreta
+```
+
+---
+
+## 14. Token do ContextVar
+
+`token = CoffeeApplicationContext.setApp(app)` retorna um **token de restauração contextual**.
+
+O token **NÃO** é:
+
+- token de autenticação;
+- token de usuário;
+- ID do Runtime;
+- identificador persistente;
+- referência global para a aplicação.
+
+O token representa **a alteração feita no ContextVar** e permite restaurar o estado anterior:
+
+```text
+estado anterior
+      ↓
+setApp(App A)
+      ↓
+token
+      ↓
+App A está ativo
+      ↓
+resetApp(token)
+      ↓
+estado anterior restaurado
+```
+
+### Contexto aninhado
+
+```text
+estado original
+      ↓
+App A        (token_A)
+      ↓
+App B        (token_B)
+      ↓
+resetApp(token_B)
+      ↓
+App A
+      ↓
+resetApp(token_A)
+      ↓
+estado original
+```
+
+Funciona como um mecanismo de restauração contextual — conceitualmente análogo a uma **pilha de estados**, gerenciada pelo próprio `contextvars`.
+
+---
+
+## 15. ContextVar e concorrência
+
+A diferença central:
+
+```python
+_current_app = app        # atributo comum: um valor global compartilhado
+ContextVar                # contextual: cada contexto de execução tem o seu
+```
+
+```text
+Contexto A                      Contexto B
+    current_app → App A             current_app → App B
+```
+
+Relevante para `asyncio`, tasks, execução concorrente, workers e contextos temporários.
+
+**Afirmação precisa (não exagerar):**
+
+> `ContextVar` fornece **isolamento contextual do valor**, mas **não substitui** mecanismos de sincronização quando existe **estado compartilhado mutável**.
+
+No Coffee, existe estado mutável compartilhado **fora** do ContextVar: `_container`/`_registry` (atributos de classe do Runtime), listas do `DefaultCoffeeRegistry` e do Container, `sys.path`. **0 travas de sincronização** no código (FACT) — o ContextVar isola só a referência do app.
+
+---
+
+## 16. Erros comuns
+
+### 16.1 `RuntimeError: CoffeeApplicationRuntime is not running`
+
+Lançado por `CoffeeApplicationContext.getApp()` quando **não há App registrado no contexto atual**.
+
+**Não é, por si só, uma race condition.** Causas típicas:
+
+```text
+1. Componente executado antes do setApp()
+2. Componente executado depois do resetApp()
+3. Componente executado fora do lifecycle (ContextVar default = None)
+4. Execução em outro contexto/task/thread (contextvars não são
+   herdados por novas threads; Task criada antes do setApp copia
+   contexto sem o app)
+5. Lifecycle assíncrono configurado incorretamente
+```
+
+É **comportamento esperado do sistema** — sinaliza acesso fora da janela do ciclo de vida.
+
+### 16.2 `RuntimeError: CoffeeApplicationRuntime is not initialized`
+
+Lançado por `getContainer()` (Runtime:37) quando `_container is None`:
+
+```text
+1. init() nunca rodou
+2. stop() já rodou (container liberado) mas o ContextVar ainda aponta
+   para o app — caso assíncrono com leak do token (verificado no boot:
+   Start() cai aqui → exit 1)
+3. chamada pós-lifecycle no mesmo contexto
+```
+
+### 16.3 `LookupError: Component not registered: <Nome>`
+
+Lançado por `CoffeeApplicationContainer.get()` — classe nunca decorada com `@Component` (registro ocorre **apenas em import time**).
+
+### 16.4 Instanciação manual × resolução pelo Container
+
+```python
+ModuleManager()               # criação manual — NÃO passa pelo lifecycle do DI
+container.get(ModuleManager)  # resolução — criação dentro do DI (nova instância a cada get, sem cache)
+```
+
+**Decisão explícita registrada:** um componente criado **manualmente** ainda pode acessar a infraestrutura (via `CoffeeComponent.container` → `CoffeeApplicationContext`) desde que exista um **Runtime ativo no contexto atual** — porque o acesso é contextual, não depende de injeção no construtor. Isso é intencional no modelo atual (service-locator contextual), porém difere do ADR 007 (constructor injection) — conflito C-002, aguardando decisão do DEV.
+
+### 16.5 Dataclass + herança de `CoffeeComponent`
+
+```python
+@dataclass
+class ModuleManager(CoffeeComponent):
+    ...
+```
+
+O `@dataclass` gera seu **próprio `__init__`** — `CoffeeComponent.__init__()` **não** é executado automaticamente. Se o estado da base depender do `__init__`, pode ser necessário:
+
+```python
+def __post_init__(self):
+    super().__init__()
+```
+
+É uma questão do mecanismo do `dataclass`, **não** do sistema de herança em si. Hoje `CoffeeComponent` **não tem `__init__`** e `ModuleManager` chama `super().__init__()` em `__post_init__` (funciona — FACT, verificado); a pegadinha fica **latente** se a base ganhar `__init__` (invariant 7b do explorer).
+
+---
+
+## 17. Invariantes arquiteturais
+
+Invariantes confirmados pelo código (FACT/HIGH — task context do `codebase-explorer`, `628e772`; ver `.agents/protocol/tasks/temp/runtime-context-di-components-task-context.json`):
+
+```text
+ 1. Runtime é instância normal, não singleton estático
+    (qualificação: estado do ciclo é de classe → 1 container compartilhado)
+ 2. ContextVar contém referência contextual para o App atual (não cópia)
+ 3. Context não é singleton do Runtime
+ 4. Component acessa o App atual via CoffeeApplicationContext
+ 5. Component prefere ApplicationContainer (abstração) como tipo
+ 6. Registry registra CLASSES; Container resolve INSTÂNCIAS
+ 7. setApp() acontece antes do acesso dos componentes   (CONFIRMADO)
+ 8. resetApp(token) no final do lifecycle               (só rota sync;
+                                                         async/factory = GAP — §5.4)
+ 9. ContextVar não substitui sincronização de estado compartilhado
+10. @Component apenas registra e devolve a classe (não instancia)
+```
+
+Estes invariantes também estão registrados em `AGENTS.md` (para agentes) e no cache `.agents/protocol/docs/codebase-explorer.json`.
+
+---
+
+> **Resumo:** `CoffeeApplicationRuntime` é a fronteira de lifecycle do Coffee — inspirada no *around advice* do AOP, mas reduzida a um único papel: **inicializar, entregar contexto e encerrar**. O contexto é entregue via `CoffeeApplicationContext` (ContextVar → referência ao App atual); componentes acessam `ApplicationContainer` por Dependency Inversion; `Config` define, `Container` disponibiliza, `Runtime` controla, `Service` executa.

@@ -1,9 +1,9 @@
 # Coffee CLI — Documentação Técnica Principal
 
-**Versão:** 0.3.2
+**Versão:** 0.3.3
 **Status:** FACT (verificado por execução/análise de código) + INFERENCE (onde a evidência é indireta) + PROPOSAL (intenção documentada, não implementada) + UNKNOWN (contexto insuficiente)
-**Última atualização:** 2026-10-01
-**Base de evidência:** task context do `codebase-explorer` — `.agents/protocol/tasks/temp/docs-main-technical-context.md`, HEAD `cb2b812` — **atualizado por leitura direta em 2026-09-28** após (a) renomeação de typos no código e (b) evolução do Container/`Dependency` posteriores ao relatório do explorer; **atualizado em 2026-09-29** após refatoração de tipos `SystemModule` → `CoffeeComponent` no decorator `@Component` (§4.5, §16.11); **atualizado em 2026-10-01** após (c) geração do relatório global do explorer (`.agents/protocol/docs/codebase-explorer.json`, HEAD `b9b15a8`) e (d) task de saneamento de imports (5 instâncias `import-cleaner` + verificação final: 61/61 imports resolvem, 0 paths antigos, 0 ciclos, 0 violações core→modules, 1 fix — `abstractmethod` removido de `CoffeeComponent.py`) e (e) **sincronização com as edições de código do DEV em 2026-10-01** (`Config.build()` reescrito — cria `configPath` se faltante e retorna `self`; `main.py` sem `config_local`, lendo config via container; **boot verificado por execução: exit 0** — §4.1/§4.2/§6.2).
+**Última atualização:** 2026-10-03
+**Base de evidência:** task context do `codebase-explorer` — `.agents/protocol/tasks/temp/docs-main-technical-context.md`, HEAD `cb2b812` — **atualizado por leitura direta em 2026-09-28** após (a) renomeação de typos no código e (b) evolução do Container/`Dependency` posteriores ao relatório do explorer; **atualizado em 2026-09-29** após refatoração de tipos `SystemModule` → `CoffeeComponent` no decorator `@Component` (§4.5, §16.11); **atualizado em 2026-10-01** após (c) geração do relatório global do explorer (`.agents/protocol/docs/codebase-explorer.json`, HEAD `b9b15a8`) e (d) task de saneamento de imports (5 instâncias `import-cleaner` + verificação final: 61/61 imports resolvem, 0 paths antigos, 0 ciclos, 0 violações core→modules, 1 fix — `abstractmethod` removido de `CoffeeComponent.py`) e (e) **sincronização com as edições de código do DEV em 2026-10-01** (`Config.build()` reescrito — cria `configPath` se faltante e retorna `self`; `main.py` sem `config_local`, lendo config via container; **boot verificado por execução: exit 0** — §4.1/§4.2/§6.2) e (f) **atualização 2026-10-03** — task de consolidação da arquitetura Application Runtime + Application Context + DI + Components: relatório do `codebase-explorer` em `.agents/protocol/docs/codebase-explorer.json` (HEAD `628e772`) + task context `.agents/protocol/tasks/temp/runtime-context-di-components-task-context.json`; nova §4.10 (`CoffeeApplicationContext`), lifecycle sync/async com `setApp`/`resetApp` documentado (§4.3), **boot re-verificado: exit 1 desde `628e772`** (leak do ContextVar na rota async — §4.1/§6.2/§17.10), invariantes em `docs/architecture/runtime.md` §13–§17 e `AGENTS.md`.
 > **Resolvido (2026-10-01):** a linha "base de evidência" já citava o report global `.agents/protocol/docs/codebase-explorer.json` como **inexistente** (FACT em 2026-09-29) — o arquivo **foi criado** em 2026-10-01 (gerado pelo `codebase-explorer` em `b9b15a8`) e é agora a referência de frescor; o task context antigo permanece STALE e é mantido como histórico.
 
 > **Legenda de classificação** (usada em todo o documento):
@@ -18,7 +18,7 @@
 
 O Coffee CLI é a interface de linha de comando do ecossistema Coffee — uma camada pessoal de produtividade, desenvolvimento, automação, contexto e integração com IA. É a camada humana e o orquestrador local: **não é um segundo servidor** — o OS funciona sem Coffee.
 
-**Estado real do código (FACT):** projeto em fase de skeleton. O núcleo de dados (`Config`), o contrato de domínio (`SystemModule`) e a fronteira de runtime (`CoffeeApplicationRuntime`) existem; o bootstrap **completa desde 2026-10-01** (execução direta `python src/coffee/main.py` → exit 0, após o DEV reescrever `Config.build()` — §6.2), não há comandos CLI funcionais, não há testes e não há CI. **Imports (atualização 2026-10-01):** todos os módulos do projeto importam (14/14 verificados; `compileall` exit 0) — os2 defeitos históricos de import (`CLI`/`ModuleManager` via `@Component`) foram resolvidos pelo commit `c60908d` (ver §16.2/§16.9).
+**Estado real do código (FACT):** projeto em fase de skeleton. O núcleo de dados (`Config`), o contrato de domínio (`SystemModule`) e a fronteira de runtime (`CoffeeApplicationRuntime`) existem; o bootstrap **completa o entry** desde 2026-10-01 (execução direta entra no Runtime e executa o `main` async), porém **termina com exit 1 desde `628e772`** (`Start()` → `RuntimeError` pós-lifecycle — §4.1/§6.2), não há comandos CLI funcionais, não há testes e não há CI. **Imports (atualização 2026-10-01):** todos os módulos do projeto importam (14/14 verificados; `compileall` exit 0) — os2 defeitos históricos de import (`CLI`/`ModuleManager` via `@Component`) foram resolvidos pelo commit `c60908d` (ver §16.2/§16.9).
 
 **Stack (FACT — `pyproject.toml`):** Python `>=3.11`, layout `src/`, setuptools, única dependência declarada `platformdirs`. Zero frameworks CLI (argparse puro).
 
@@ -141,7 +141,7 @@ src/coffee/
 - `Start()` (10-11) — **estado em 2026-10-01:** contém `print("coffe")` (placeholder que substituiu o `tool.menu()` inexistente — FACT histórico, `TODO:54`) e é **alcançável** — executa após `asyncio.run(main())`.
 - `if __name__ == "__main__"` (29-31): `asyncio.run(main())` → `Start()`.
 
-**Execução verificada (FACT — 2026-10-01):** `python src/coffee/main.py` → boot **completa com exit 0** e imprime `coffe` — depois que o DEV reescreveu `Config.build()` (§4.2). Defeitos que permanecem: `tool.verify_modules()` é `async` e é agendado com `asyncio.create_task(...)` (18) **sem aguardar o resultado** (só executa se `Debug=True`; `Debug` default é `False`); condição `if not (app or app.getContainer())` (20) nunca dispara. (O typo da mensagem `"StopAsycnInteration"` foi corrigido em 2026-09-28 — §16.10.)
+**Execução verificada (FACT — re-verificado em 2026-10-03, HEAD `628e772`):** `python -m coffee.main` → `asyncio.run(main())` executa o entry (init + corpo OK, imprime `coffe` via `Start()`), mas **termina com exit 1**: `Start()` (34) → `ModuleManager().loadModules()` (13) → property `container` → `getApp()` OK (**leak**: a rota async não chama `resetApp`) → `getContainer()` → `RuntimeError: CoffeeApplicationRuntime is not initialized` (Runtime:37) — causa: `stop()` já zerou `_container` no `finally` da rota async. Até `9ddf051` (sem `ModuleManager` em `Start()`) o boot era **exit 0** — registros anteriores de "exit 0" (§4.1 antiga, §6.2, `STATE.md`, `state.json`) refletem aquele estado. Defeitos que permanecem: `tool.verify_modules()` é `async` e é agendado com `asyncio.create_task(...)` (21) **sem aguardar o resultado** (só executa se `Debug=True`; `Debug` default é `False`); condição `if not (app or app.getContainer())` (23) nunca dispara.
 
 ### 4.2 `config` e `data` — Config e Host (FACT)
 
@@ -175,8 +175,8 @@ class Config:
 
 **O que é (FACT):** classe que combina duas coisas:
 
-1. **Estado estático de aplicação** — `_container` (atributo de classe), `init()` (21-30) cria `Config().build()` + `CoffeeApplicationContainer`; `getContainer()` (33-37) retorna o container ou lança `RuntimeError`; `setConfig()` (40-41); `stop()` (44-46) zera `_container` e retorna `True`.
-2. **Decorator de lifecycle** — `__init__(func)` (17-18), `__call__` (48-79), `_invokeAsync` (81-89).
+1. **Estado de ciclo de aplicação** — `_container`/`_registry` (atributos de **classe**, 16-17), `init()` (22-32) cria `Config().build()` + `CoffeeApplicationContainer`; `getContainer()` (34-39) retorna o container ou lança `RuntimeError`; `setConfig()` (41-43); `stop()` (45-48) zera `_container` e retorna `True`. Todos são `@classmethod` (contrato da ABC `ApplicationRuntime`).
+2. **Decorator de lifecycle** — `__init__(func)` (19-20), `__call__` (50-83), `_invokeAsync` (85-93).
 
 **Comportamento do decorator (FACT — verificado por execução):**
 
@@ -185,14 +185,17 @@ class Config:
 async def main(app: CoffeeApplicationRuntime): ...
 ```
 
-- Aceita as duas formas (factory em 60-65); args/kwargs na chamada → `TypeError` (67-70).
-- Sync: `init()` (75) → `func(self)` → `finally stop()`.
-- Async: retorna coroutine → `init()` (82) → `await func(self)` → `finally stop()`.
+- Aceita as duas formas (factory em 63-68); args/kwargs na chamada → `TypeError` (70-73).
+- **`token = CoffeeApplicationContext.setApp(self)` (61)** ocorre **antes** de `init()` nas duas rotas — o App fica registrado no ContextVar antes de qualquer componente acessar `getApp()`.
+- Sync: `init()` (78) → `func(self)` (80) → `finally`: `resetApp(token)` (82) + `stop()` (83) — **ciclo fechado corretamente** (verificado: após reset, `getApp()` → `RuntimeError: not running`).
+- Async: retorna coroutine → `_invokeAsync`: `init()` (86) → `await func(self)` (88-90) → `finally`: **apenas `stop()` (92-93) — SEM `resetApp(token)`** (GAP, ver §17.10).
 - Injeta `self` (a instância runtime) como argumento do ponto de entrada.
+- **Factory-form:** `@CoffeeApplicationRuntime()` sem alvo → `setApp` roda no decorate (61) e o token **nunca é resetado** (leak verificado).
 
 **Limitações verificadas (FACT):**
 
-- `init()` está **fora** do `try` nas duas rotas (75 e 82): se `init()` falhar, `stop()` **não roda** — a garantia de `try/finally` documentada em `runtime.md:307` não se sustenta. *(Desde 2026-10-01 `init()` não lança mais — `Config.build()` foi reescrito (§4.2) e o boot completo foi verificado por execução; a assimetria estrutural permanece.)*
+- `init()` está **fora** do `try` nas duas rotas (78 e 86): se `init()` falhar, `stop()` **não roda** — a garantia de `try/finally` documentada em `runtime.md` não se sustenta. *(Desde 2026-10-01 `init()` não lança mais — `Config.build()` foi reescrito (§4.2); a assimetria estrutural permanece.)*
+- **Rota async sem `resetApp`:** o token setado em `__call__` (61) nunca reseta na rota assíncrona → após `stop()`, o ContextVar ainda aponta para o app → `Start()` falha com `RuntimeError: CoffeeApplicationRuntime is not initialized` → **boot exit 1** (verificado 2026-10-03).
 - **Atenção:** `main()` é coroutine mas `__call__` é síncrono e retorna a coroutine `_invokeAsync(...)` — o `await` real acontece dentro de `_invokeAsync`, que é agendado por `asyncio.run(main())` no `__main__`.
 
 **Marcas de autoria (INFERENCE · confiança MEDIUM-HIGH — agente, commit `dad3b2d`, lote 2026-09-25 22:27):**
@@ -339,6 +342,46 @@ def Component(component: type[T]) -> type[T]:                 # T bound=CoffeeCo
 - `modules/ssh/package.py`: `@Module class SSHModule(SystemModule)` — **subclasseia o contrato `SystemModule`** com `id/name/version` (status 2026-10-01; até o restructure era um dataclass "fora do contrato") — registrado em `registry.systemModules` via `packageRegister`, **sem consumidor**.
 - `modules/system/`, `modules/update/`: `__init__` vazios.
 
+### 4.10 `CoffeeApplicationContext` — Application Context via ContextVar (FACT)
+
+**Arquivo:** `src/coffee/core/runtime/CoffeeApplicationContext.py` (introduzido em `628e772`, 2026-10-03)
+
+**O que é (FACT):** portal de acesso **contextual** à aplicação atual. Um `ContextVar` de módulo:
+
+```python
+_current_app: ContextVar["CoffeeApplicationRuntime | None"] = ContextVar(
+    "coffee_current_app", default=None,
+)
+```
+
+e uma classe sem estado (`staticmethods` apenas):
+
+| Método | Comportamento |
+|---|---|
+| `setApp(app)` | `_current_app.set(app)` → **retorna token** de restauração |
+| `getApp()` | retorna a referência; se `None` → `RuntimeError("CoffeeApplicationRuntime is not running")` (24-26) |
+| `resetApp(token)` | `_current_app.reset(token)` — restaura o estado anterior |
+
+**Invariantes (FACT):**
+
+- O ContextVar guarda uma **referência** à instância de `CoffeeApplicationRuntime` (identidade verificada por execução) — **não uma cópia**.
+- `_current_app` é acessado **apenas** neste arquivo (grep) — o resto do sistema usa `setApp`/`getApp`/`resetApp`.
+- **Não** é singleton nem variável global comum: cada contexto de execução (task/thread) tem o seu valor; `default = None` fora do ciclo.
+- Não substitui sincronização de estado compartilhado mutável (`_container` de classe, listas do registry/container — 0 travas no código).
+
+**Fluxo de uso (FACT):**
+
+```text
+CoffeeComponent.container (property, CoffeeComponent.py:10-12)
+  → CoffeeApplicationContext.getApp()
+  → CoffeeApplicationRuntime.getContainer()
+  → ApplicationContainer (abstração — DIP)
+```
+
+**Erros comuns (documentados em `runtime.md` §16):** `not running` = `getApp()` sem App no contexto (antes do `setApp`/depois do `resetApp`/fora do ciclo/outro contexto); `not initialized` = `getContainer()` com `_container = None` (pós-`stop()` com leak do token na rota async).
+
+> **Status de decisão:** mecanismo **commitado e em uso** (`628e772`), porém **sem ADR/spec** que o formalize (U-002 do task context — PROPOSAL/UNKNOWN; ADR 007 prevê constructor injection para `ModuleManager`, hoje divergente — conflito §17.11).
+
 ---
 
 ## 5. Domain Model
@@ -372,23 +415,28 @@ coffee (shell)
     (não existe src/coffee/cli/)
 ```
 
-**Status 2026-10-01:** o pacote está instalado em modo editable no `.venv` do projeto (`pip install -e .` → `coffee-cli 0.1.0`), então `import coffee` **resolve** a partir de qualquer diretório; porém o script gerado `coffee.exe` ainda falha com `ModuleNotFoundError: No module named 'coffee.cli.main'` — o entrypoint quebrado permanece decisão do DEV (`TODO:14`). Enquanto isso, `python src/coffee/main.py` executa e **completa com exit 0** (boot funcional desde a reescrita de `Config.build()` — §6.2).
+**Status 2026-10-01:** o pacote está instalado em modo editable no `.venv` do projeto (`pip install -e .` → `coffee-cli 0.1.0`), então `import coffee` **resolve** a partir de qualquer diretório; porém o script gerado `coffee.exe` ainda falha com `ModuleNotFoundError: No module named 'coffee.cli.main'` — o entrypoint quebrado permanece decisão do DEV (`TODO:14`). Enquanto isso, `python -m coffee.main` executa o entry no Runtime — mas **termina com exit 1 desde `628e772`** (gap `resetApp` na rota async — §6.2; exit 0 apenas até `9ddf051`).
 
-### 6.2 Fluxo de execução direta (FACT — verificado em 2026-10-01)
+### 6.2 Fluxo de execução direta (FACT — re-verificado em 2026-10-03, HEAD `628e772`)
 
 ```
 import coffee.main
-  → @CoffeeApplicationRuntime vira instância      (main.py:13)
-python src/coffee/main.py (__main__)
-  → asyncio.run(main())                          (main.py:30)
-  → CoffeeApplicationRuntime.__call__             → _invokeAsync (coroutine)
+  → @CoffeeApplicationRuntime vira instância      (main.py:16)
+python -m coffee.main (__main__)
+  → asyncio.run(main())                          (main.py:33)
+  → CoffeeApplicationRuntime.__call__
+     → token = CoffeeApplicationContext.setApp(self)   (Runtime:61)  ← ANTES de init
+     → _invokeAsync (coroutine; asyncio.run copia o contexto do caller)
   → _invokeAsync → init() → Config().build() OK  (cria configPath se faltante)
-     → registry → Container(config)               (main.py:16)
+     → registry → Container(config)               (Runtime:28-32)
   → corpo de main: contener.config.Debug = False  → create_task NÃO agendado
-  → finally → stop() → _container = None
-  → Start() → print("coffe")                     (main.py:31)   ← executado
-exit 0
+  → finally → APENAS stop() → _container = None   (Runtime:92-93)   ← SEM resetApp (leak)
+  → Start() → print("coffe") → ModuleManager().loadModules()
+     → getApp() OK (leak) → getContainer() → RuntimeError "not initialized"
+exit 1
 ```
+
+> **Nota (FACT):** o caminho de sucesso `exit 0` valia até `9ddf051` (sem `ModuleManager` em `Start()`). Desde `628e772` o boot sai com **exit 1** pela causa acima (gap `resetApp` na rota async — §4.3/§17.10). O caminho **síncrono** do decorator continua fechando o ciclo corretamente (`resetApp` + `stop`).
 
 > Nota (FACT — verificado por execução em 2026-10-01): o fluxo acima é o caminho **de sucesso** após o DEV reescrever `Config.build()` (§4.2). Antes disso, o boot falhava em `init()` (`RuntimeError` sem mensagem) e `Start()` era inalcançável — registro histórico em §16.6. `main.py` e `CoffeeApplicationRuntime.py` estavam **ativos em edição pelo DEV** em 2026-10-01 — refs de linha aproximadas.
 
@@ -643,6 +691,9 @@ A fonte de verdade sobre **estado** é o **código**; a fonte documental **canô
 7. `components-aop.md:101-118` → conteúdo consistente com o código **na época**, mas citava caminhos antigos pré-rename — **paths atualizados em 2026-10-01** (§16.10); as linhas de status do texto seguem refletindo o estado pós-`c60908d`/`3d47da8`.
 8. **Pós-rename (2026-09-28):** `runtime.md`, `docs/decisions/006` e `007` e `components-aop.md` referenciavam `contener/`, `componets/`, `Componet.py`, `CoffeAplicationRuntime.py`, `Dependecy.py`, `Services/` — caminhos **obsoletos**. **Status 2026-10-01:** `runtime.md`, `components-aop.md` e `.agents/specs/coffee-components-aop.md` foram **sincronizados com os paths atuais**; permanecem com paths históricos apenas **ADRs 006/007** (registros de decisão — preservados por serem histórico) e o diagrama `CoffeeSDK.drawio`. Observação: a alegação de que `specs/coffee-cli-v1.md` citava paths antigos era **incorreta** (grep = 0 ocorrências).
 9. **DECISION × código (novo, 2026-10-01):** a **DECISION (DEV, 2026-09-29)** de **manter `packageRegister`** no decorator `@Component` diverge do código atual, que chama **`register`** desde `c60908d` (`decorators/Component.py:10`). `@Module` continua em `packageRegister`. Documentação registrada; correção requer decisão do DEV (`TODO:53`).
+10. **Boot exit 1 × docs "exit 0" (2026-10-03):** desde `628e772` o boot sai com **exit 1** (`Start()` → `RuntimeError: CoffeeApplicationRuntime is not initialized`) porque a rota assíncrona não chama `resetApp` (leak do ContextVar). `doc.md` §4.1/§6.2 **corrigidos nesta versão**; `docs/ai/STATE.md` e `.agents/state.json` sincronizados. Os registros de "exit 0" eram válidos para commits ≤ `9ddf051`.
+11. **ADR 007 × código (C-002):** ADR 007 (ACCEPTED) prevê `ModuleManager` com config via **constructor injection** criado no `init()` do Runtime; o código atual (`628e772`) usa **service-locator contextual** (`property container` → `CoffeeApplicationContext`) e `init()` não cria `ModuleManager`. Conflito registrado; correção requer decisão do DEV.
+12. **Spec/espelho "ABC + initialize()" (C-003) — RESOLVIDO 2026-10-03:** `docs/architecture/components-aop.md` §5 e `.agents/specs/coffee-components-aop.md` descreviam `CoffeeComponent` com `initialize()` — removido desde `628e772` (base hoje: `property container` + `get()`, sem `__init__`/`initialize`). Tabela corrigida.
 
 **Resolução da questão anterior (DECISION · DEV · 2026-09-28):** *"qual doc prevalece?"* → **`doc.md` é mais relevante** — é a fonte documental principal; as demais docs ficam subordinadas a ela. Divergências doc × código continuam sendo registradas nesta seção (código = estado atual, doc.md = referência canônica).
 
@@ -650,7 +701,7 @@ A fonte de verdade sobre **estado** é o **código**; a fonte documental **canô
 
 ## 18. Known Limitations (FACT — todos verificados)
 
-1. ~~**Boot nunca completa**~~ — **RESOLVIDO (2026-10-01, FACT por execução):** o DEV reescreveu `Config.build()` (cria `configPath` se faltante, `raise` só se o path não for diretório) → `python src/coffee/main.py` completa com **exit 0** e imprime `coffe` (§6.2). Permanece a assimetria `init()` fora do `try` (se `init()` voltar a falhar, `stop()` não roda — §4.3).
+1. **Boot termina com exit 1 (desde `628e772`, verificado 2026-10-03)** — a rota assíncrona do decorator **não chama `resetApp(token)`** no `finally` (Runtime:92-93) → ContextVar leak → `Start()` → `ModuleManager().loadModules()` → `getContainer()` lança `RuntimeError: CoffeeApplicationRuntime is not initialized`. A reescrita de `Config.build()` (§4.2) resolveu a falha anterior em `init()`; o gap atual é o `resetApp` ausente (§4.3/§17.10) + `init()` fora do `try` (assimetria estrutural).
 2. **Entrypoint de instalação quebrado** — `pyproject.toml:20` (decisão do DEV, `TODO:14`); o script `coffee.exe` agora existe no `.venv` (editable install em 2026-10-01) mas falha com `ModuleNotFoundError: coffee.cli.main`.
 3. ~~**2 módulos não importam**~~ — **RESOLVIDO (2026-10-01)**: `CLI` e `ModuleManager` importam OK (`c60908d`); 14/14 módulos verificados (`TODO:53` — o drift decisão × código permanece aberto).
 4. **Container: DI incompleta** — `_create` descreve `dependencies` via `Dependency`, mas nunca é chamado e `get()` não injeta (§4.4.3); `systemModules` sem escritor/leitor.
@@ -663,7 +714,7 @@ A fonte de verdade sobre **estado** é o **código**; a fonte documental **canô
 11. **Diretórios órfãos** — `egine/` (UNDEFINED), `modules/ssh/{Adpiter,models,Services}/` (`TODO:55`).
 12. ~~**Trabalho não commitado**~~ — **RESOLVIDO (2026-10-01):** renomeações de 2026-09-28 commitadas (`ecc3603`, `3d47da8`); `state.json` reescrito sem mojibake; doc sincronizada (v0.3.2) — commit desta sessão.
 13. ~~**Ambiente** — `.venv` observado sem `platformdirs`~~ — **RESOLVIDO (2026-10-01):** `pip install -e .` executado no `.venv` (Python 3.14.7, `platformdirs` 4.12.1 OK); `import coffee` resolve de qualquer diretório.
-14. **`main.py` defects (atualizado 2026-10-01)** — `Start()` contém placeholder `print("coffe")` (substituiu o `tool.menu()` inexistente), `verify_modules()` agendado via `create_task` sem aguardar (só roda com `Debug=True`), condição `if not (app or ...)` morta, import `Config` unused desde a remoção de `config_local`. **Alcançável desde 2026-10-01** (boot exit 0 após reescrita de `Config.build()`).
+14. **`main.py` defects (atualizado 2026-10-01)** — `Start()` contém placeholder `print("coffe")` (substituiu o `tool.menu()` inexistente), `verify_modules()` agendado via `create_task` sem aguardar (só roda com `Debug=True`), condição `if not (app or ...)` morta, import `Config` unused desde a remoção de `config_local`. `Start()` é **alcançável** (executa após `asyncio.run(main())`) — desde `628e772` falha dentro dele (`ModuleManager().loadModules()` → `RuntimeError`, §4.1/§18.1).
 
 ---
 
@@ -687,11 +738,11 @@ Cada item de §18 corresponde a entrada em `docs/TODO.md` ([H] decisão do DEV, 
 
 | Arquivo | Status | Observação |
 |---|---|---|
-| `docs/doc.md` | **ESTE ARQUIVO (0.3.2)** | doc principal, atualizada contra HEAD `b9b15a8` + rename 2026-09-28 + refatoração de tipos 2026-09-29 (§16.11) + sync de paths/imports 2026-10-01 |
-| `docs/TODO.md` | não commitado | registra os findings (14-15, 47-49); atualizado em 2026-10-01 (drift 53/54, task de imports) |
-| `docs/ai/STATE.md` | 2026-10-01 | sincronizado com o estado pós-import-cleanup |
-| `docs/architecture/runtime.md` | PROPOSAL, paths atualizados 2026-10-01 | §7 = código anterior ao HEAD; conflitos em §17 |
-| `docs/architecture/components-aop.md` | DECISION 2026-09-25, paths/status atualizados 2026-10-01 | consistente com o código pós-`c60908d`/`3d47da8` |
+| `docs/doc.md` | **ESTE ARQUIVO (0.3.3)** | doc principal, atualizada contra HEAD `628e772` (consolidação Runtime/Context/DI 2026-10-03: §4.1/§4.3/§4.10/§6.2/§17.10-12/§18.1) |
+| `docs/TODO.md` | — | registra os findings; atualizado 2026-10-03 (U-001 gap resetApp, U-002 formalização ContextVar, review boot exit 1) |
+| `docs/ai/STATE.md` | 2026-10-03 | sincronizado com consolidação + boot exit 1 |
+| `docs/architecture/runtime.md` | PROPOSAL + FACT; §13–§17 desde 2026-10-03 | Application Context/ContextVar/token/concorrência/erros/invariantes; §7 = código anterior ao HEAD (banner); conflitos em doc.md §17 |
+| `docs/architecture/components-aop.md` | DECISION 2026-09-25; §5.1–§5.5 desde 2026-10-03 | Registry×Container, @Component, DIP, dataclass; tabela sem `initialize()` |
 | `docs/decisions/001-007` | 001/003/005/006/007 DECIDED | 006 (componentes) e 007 (DI) governam a área |
 | `docs/specs/coffee-cli-v1.md` | spec V1 | comandos, domínio, config, lifecycle (PROPOSAL) |
 | `docs/diagrams/architecture.mmd` | — | 4 diagramas |

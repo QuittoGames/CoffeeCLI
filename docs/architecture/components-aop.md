@@ -102,14 +102,92 @@ Assim, o Coffee deixa de ser apenas uma coleção de módulos e passa a possuir 
 
 | Item | Conceito | Código hoje |
 |---|---|---|
-| `CoffeeComponent` | abstração base | **existe** — `src/coffee/core/components/CoffeeComponent.py` (ABC + `initialize()`) |
+| `CoffeeComponent` | abstração base | **existe** — `src/coffee/core/components/CoffeeComponent.py` (ABC **sem** `__init__`/`initialize()`; `property container` = `CoffeeApplicationContext.getApp().getContainer()` + `get(component)`) |
 | Tipos especializados (`Component`, `Service`, `Module`, `Repository`, `System Functions`) | unidades funcionais | **parcial** — apenas os decorators `@Component` (`components/decorators/Component.py`) e `@Module` (`components/decorators/Module.py`) existem; os demais, não |
 | `CoffeeRegistry` | registro / discovery / resolution | **herança (não duplicação)** — ABC `CoffeeRegistry` (`container/CoffeeRegistry.py`) + `DefaultCoffeeRegistry(CoffeeRegistry)` (`container/DefaultCoffeeRegistry.py`, funcional: listas `dependencies`/`systemModules`); singleton em `container/registry.py` |
 | `CoffeeApplicationContainer` | DI | **parcial** — guarda `Config` + `dependencies: list[Dependency]` + `systemModules`; `_create()` reflete assinaturas mas **nunca é chamado** e `get()` não injeta (ver `docs/doc.md` §4.4) |
 | AOP transversal | comportamentos sobre componentes | **não implementado** — único around existente é o decorator de lifecycle (`CoffeeApplicationRuntime.__call__`) |
 | `@Component` → registro | declaração → registry | **funciona (2026-10-01)** — chama `register()` (desde `c60908d`), sem exigência de `.id`; até 2026-09-30 chamava `packageRegister()` e quebrava com `AttributeError` |
 
-> **Atualizado em 2026-10-01** contra o código pós-`c60908d`/`3d47da8` (paths e status); até 2026-09-30 esta tabela citava `componets/`, `contener/` e o defeito de `.id`.
+> **Atualizado em 2026-10-01** contra o código pós-`c60908d`/`3d47da8` (paths e status); até 2026-09-30 esta tabela citava `componets/`, `contener/` e o defeito de `.id`. **Atualizado em 2026-10-03:** `CoffeeComponent` sem `initialize()` (removido em `628e772`).
+
+### 5.1 Registry × Container (separação essencial)
+
+```text
+Registry
+    ↓
+sabe QUAIS componentes foram registrados (CLASSES, em import time)
+
+Container
+    ↓
+sabe COMO obter/criar/resolver as INSTÂNCIAS
+```
+
+- `CoffeeRegistry`/`DefaultCoffeeRegistry` mantém **classes** registradas (via `register`/`packageRegister`).
+- `CoffeeApplicationContainer` realiza a **resolução**: `container.get(T)` → `registry.get(T)` → `T()` — **nova instância sem args a cada chamada** (sem cache) — verificado por execução.
+- Eles **não são a mesma coisa**.
+
+### 5.2 Decorator `@Component` = registro, não instanciação
+
+```python
+class ComponentDecorator:
+    def __call__(self, component):
+        registry.register(component)
+        return component
+
+Component = ComponentDecorator()
+```
+
+1. recebe a classe;
+2. registra-a no Registry;
+3. devolve **a própria classe**.
+
+```python
+@Component
+class ModuleManager(...): ...
+```
+
+**não** transforma `ModuleManager` em instância nem substitui a classe pelo decorator — é apenas mecanismo de registro (FACT, `decorators/Component.py:10-12`).
+
+### 5.3 Acesso de componente ao contexto (Dependency Inversion)
+
+`CoffeeComponent` **não** recebe o `CoffeeApplicationRuntime` por parâmetro:
+
+```python
+@property
+def container(self) -> ApplicationContainer:
+    return CoffeeApplicationContext.getApp().getContainer()
+```
+
+```text
+CoffeeComponent
+       ↓
+ApplicationContainer        ← contrato/abstração (dependência do componente)
+       ↑
+CoffeeApplicationContainer  ← implementação concreta
+```
+
+Isso é **Dependency Inversion**: o componente depende do contrato `ApplicationContainer`, não da implementação. Detalhes do ContextVar em `runtime.md` §13.
+
+### 5.4 Instanciação manual × resolução pelo Container
+
+```python
+ModuleManager()               # criação manual — fora do lifecycle do DI
+container.get(ModuleManager)  # resolução — dentro do DI (nova instância por chamada)
+```
+
+**Decisão explícita:** mesmo criado manualmente, um `CoffeeComponent` acessa a infraestrutura via `CoffeeApplicationContext` **desde que exista um Runtime ativo no contexto atual** (service-locator contextual). Diverge do ADR 007 (constructor injection) — conflito registrado em `doc.md` §17.11.
+
+### 5.5 Pegadinha: `@dataclass` + herança de `CoffeeComponent`
+
+O `@dataclass` gera seu **próprio `__init__`** — o `__init__` da base **não** roda automaticamente. Se o estado da base depender dele:
+
+```python
+def __post_init__(self):
+    super().__init__()
+```
+
+Questão do mecanismo do `dataclass`, não da herança. Hoje `CoffeeComponent` não tem `__init__` (funciona — FACT); latente se a base ganhar um.
 
 ### Decisões abertas relacionadas
 

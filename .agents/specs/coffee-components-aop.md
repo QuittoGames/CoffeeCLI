@@ -103,13 +103,13 @@ Assim, o Coffee deixa de ser apenas uma coleção de módulos e passa a possuir 
 
 | Item | Spec | Código hoje |
 |---|---|---|
-| `CoffeeComponent` | abstração base de todos os componentes | **existe** — `components/CoffeeComponent.py` (ABC + `initialize()`) |
+| `CoffeeComponent` | abstração base de todos os componentes | **existe** — `core/components/CoffeeComponent.py` (ABC **sem** `__init__`/`initialize()`; `property container` = `CoffeeApplicationContext.getApp().getContainer()` + `get(component)` — desde `628e772`) |
 | `Component` / `Service` / `Module` / `Repository` / `System Functions` | tipos especializados | **parcial** — existem os decorators `@Component` (`components/decorators/Component.py`) e `@Module` (`components/decorators/Module.py`); os demais, não |
 | `CoffeeRegistry` | registro / discovery / resolution | **herança (não duplicação)** — ABC `CoffeeRegistry` (`container/CoffeeRegistry.py`) + `DefaultCoffeeRegistry(CoffeeRegistry)` funcional (`container/DefaultCoffeeRegistry.py`; listas `dependencies`/`systemModules`); singleton em `container/registry.py` |
 | `CoffeeApplicationContainer` | resolve dependências e faz DI | **parcial** — guarda `Config` + `dependencies`/`systemModules`; `_create()` reflete assinaturas mas nunca é chamado e `get()` não injeta (doc.md §4.4) |
 | AOP transversal | comportamentos sobre os componentes | **ainda não existe** — o único around implementado é o decorator de lifecycle (`CoffeeApplicationRuntime.__call__`) |
 | `@Component` → registro | declaração → `CoffeeRegistry` | **funciona (2026-10-01)** — chama `register()` (desde `c60908d`), sem exigência de `.id`; até 2026-09-30 chamava `packageRegister()` e falhava com `AttributeError`. **CONFLICT:** DECISION (2026-09-29) registrava manter `packageRegister` — divergente do código (doc.md §17.9) |
 
-> **Atualizado em 2026-10-01** (paths pré-rename `componets/`/`contener/` e status do defeito de `.id` substituídos pelo estado pós-`c60908d`/`3d47da8`).
+> **Atualizado em 2026-10-01** (paths pré-rename `componets/`/`contener/` e status do defeito de `.id` substituídos pelo estado pós-`c60908d`/`3d47da8`). **Atualizado em 2026-10-03:** `CoffeeComponent` sem `initialize()` (removido em `628e772` — acesso via `CoffeeApplicationContext`, ver `docs/architecture/runtime.md` §13).
 
 > **DECISION (DEV, 2026-09-25):** a definição de AOP do Coffee **foi alargada** — cobre a infraestrutura declarativa de componentes (`CoffeeComponent` → `CoffeeRegistry` → `CoffeeApplicationContainer`) **e** o único around de execução (lifecycle). O alargamento **não** adota AOP de verdade: sem pointcuts, weaving, proxies ou interceptação arbitrária ("nada muito grande"). `docs/architecture/runtime.md` §3 foi reconciliado com esta definição.

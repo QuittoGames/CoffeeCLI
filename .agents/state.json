@@ -1,19 +1,27 @@
 {
   "mode": "task-execution",
-  "objective": "DOC SYNC + IMPORT MIGRATION CoffeeCLI (2026-10-01) — alinhar imports à estrutura real e sincronizar docs com o código",
-  "currentTask": "Concluído: saneamento de imports (5 instâncias import-cleaner + fix abstractmethod em CoffeeComponent.py, 61/61 resolvem) e sincronização documental — doc.md v0.3.2 (paths pós-restructure, boot flow, §4/§6/§16/§18), runtime.md §7/§8 (banner de snapshot desatualizado + paths), components-aop.md, .agents/specs, TODO.md (:14/:53/:54 + Completed), STATE.md reescrito para 2026-10-01",
-  "validationStatus": "PASS — compileall exit 0; boot verificado por execução (python src/coffee/main.py → exit 0, imprime 'coffe') após reescrita de Config.build() pelo DEV; TODO:53/:54 confirmados nas linhas 53/54; grep de paths antigos em docs = apenas histórico intencional (ADRs 006/007, drawio, §16.10/§16.11, TODO histórico)",
-  "nextStep": "Commit local (staging explícito: código Config/Container/Runtime/main/CoffeeComponent + docs/.agents) seguido de push (autorizado pelo DEV no comando /commit: 'push autorizado, faça isso após finalizar a inserção na doc')",
+  "objective": "CONSOLIDATION CoffeeCLI (2026-10-03) — documentar arquitetura Application Runtime + Application Context (ContextVar) + DI + Components e persistir no cache/contexto do agente",
+  "currentTask": "Concluído: exploração codebase-explorer (628e772) + documentação — runtime.md §5.3/§5.4 + novas §13–§17 (ContextVar, token, concorrência, erros, invariantes), doc.md v0.3.3 (§4.1/§4.3/§4.10/§6.2/§17.10-12/§18.1), components-aop.md §5.1–§5.5 + tabela (sem initialize()), espelho .agents/specs, invariantes em AGENTS.md, STATE.md atualizado",
+  "validationStatus": "PASS — boot re-executado (python -m coffee.main) → EXIT 1 confirmado (Start() → RuntimeError 'CoffeeApplicationRuntime is not initialized', leak resetApp rota async); leitura direta de Runtime/ApplicationContext/CoffeeComponent/main.py confirma file:line documentados; nenhum código de produto alterado",
+  "nextStep": "Devolução ao DEV: revisar docs e decidir U-001 (resetApp ausente async/factory), U-002 (formalizar ContextVar em ADR?) e C-002 (ADR 007 constructor injection × service-locator contextual)",
   "blockers": [
-    "TASK CONFLICT (resolvido por preservação): edições paralelas do DEV em main.py/Config.py/Container.py/Runtime.py durante a sessão foram preservadas intocadas e SINTETIZADAS na doc (boot exit 0, config via container)"
+    "Boot exit 1 desde 628e772 (gap resetApp na rota async) — correção requer decisão do DEV (U-001), não alterado por esta task"
   ],
   "openQuestions": [
+    "U-001: ausência de resetApp na rota async e no decorate factory — bug ou intenção (contexto vivo até o fim)?",
+    "U-002: ContextVar como mecanismo oficial de entrega de contexto foi DECIDIDO? sem ADR/spec",
+    "C-002: ADR 007 (constructor injection) × código usa service-locator contextual",
     "Entrypoint do pyproject: coffee.cli.main:main não existe — decisão do DEV (TODO:14)",
-    "Estado do @Component: DECISION registrada dizia manter packageRegister, mas código atual usa register (c60908d) — confirmar com DEV (TODO:53)",
-    "Classificação arquitetural de config/ e data/ vs core/modules — UNKNOWN",
-    "Resíduos OUT-OF-SCOPE no Config.build(): condição invertida sempre recria Host(); from time import sleep unused; import Config unused em main.py"
+    "Drift @Component: DECISION packageRegister × código register (TODO:53)",
+    "Modelo de instância do container: _container/_registry são de classe (1 container compartilhado) — sem decisão"
   ],
   "decisions": [
-    "DECISION (DEV, 2026-09-29): packageRegister mantido no decorator @Component — anotação `type` simples reservada para migração futura (DRIFT com código atual, TODO:53)"
+    "DECISION (DEV, 2026-09-29): packageRegister mantido no decorator @Component — DRIFT com código atual (register), TODO:53",
+    "DECISION (DEV, 2026-09-28): doc.md é a fonte documental canônica"
+  ],
+  "graphStatus": "N/A",
+  "knowledgeArtifacts": [
+    ".agents/protocol/docs/codebase-explorer.json (report global, 628e772)",
+    ".agents/protocol/tasks/temp/runtime-context-di-components-task-context.json (contexto da task de consolidação)"
   ]
 }
