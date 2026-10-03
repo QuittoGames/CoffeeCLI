@@ -1,8 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any
-
 from coffee.config.Config import Config
-
 
 class ApplicationContainer(ABC):
     @abstractmethod

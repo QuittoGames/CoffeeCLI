@@ -5,7 +5,6 @@ from typing import Any
 from coffee.config.Config import Config
 from coffee.core.domain.interface.ApplicationContainer import ApplicationContainer
 
-
 class ApplicationRuntime(ABC):
     @abstractmethod
     def __init__(self, func: Callable[..., object] | None = None) -> None: ...
