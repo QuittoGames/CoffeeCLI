@@ -7,6 +7,7 @@ from coffee.core.domain.exceptions.InvalidCoffeeApplicationException import (
 )
 
 def Start():
+    tool.clear_screen()
     print("coffe")
 
 @CoffeeApplicationRuntime

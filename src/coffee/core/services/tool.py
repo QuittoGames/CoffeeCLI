@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from coffee.config.Config import Config
 import subprocess
 import sys
-
+from pathlib import Path
 
 @dataclass
 class tool:
@@ -18,6 +18,11 @@ class tool:
     @staticmethod
     async def verify_modules():
         try:
+            runner = Path(".venv") / ("Scripts/python.exe" if sys.platform == "win32" else "bin/python")
+
+            if not os.path.exists(".venv"):
+                subprocess.run([sys.executable, "-m", "venv", ".venv"], check=True)
+
             req_path = os.path.abspath(
                 os.path.join(
                     os.path.dirname(__file__), "requirements", "requirements.txt"

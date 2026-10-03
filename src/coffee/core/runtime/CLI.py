@@ -1,10 +1,11 @@
 import argparse
 from coffee.core.components.decorators.Component import Component
+from coffee.core.components.CoffeeComponent import CoffeeComponent
 from coffee.core.services.module.ModuleManager import ModuleManager
 from coffee.config.Config import Config
 
 @Component
-class RuntimeCLI:
+class RuntimeCLI(CoffeeComponent):
     parser: argparse.ArgumentParser
 
     def __init__(self, moduleManager: ModuleManager, config: Config):

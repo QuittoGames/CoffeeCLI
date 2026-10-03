@@ -8,9 +8,10 @@ from coffee.core.container.CoffeeApplicationContainer import (
 )
 from coffee.core.container.registry import registry
 from coffee.core.container.CoffeeRegistry import CoffeeRegistry
+from coffee.core.domain.interface.ApplicationRuntime import ApplicationRuntime
 
 
-class CoffeeApplicationRuntime:
+class CoffeeApplicationRuntime(ApplicationRuntime):
     _container: CoffeeApplicationContainer | None = None
     _registry: CoffeeRegistry | None = None
 

@@ -4,9 +4,11 @@ from coffee.config.Config import Config
 from coffee.data.Host import Host
 from coffee.core.domain.models.Dependency import Dependency
 from coffee.core.domain.interface.SystemModule import SystemModule
+from coffee.core.domain.interface.ApplicationContainer import ApplicationContainer
 from coffee.core.container.DefaultCoffeeRegistry import DefaultCoffeeRegistry
 
-class CoffeeApplicationContainer:
+
+class CoffeeApplicationContainer(ApplicationContainer):
     def __init__(self, config: Config):
         self.config = config
         self.dependencies: list[Dependency] = []
